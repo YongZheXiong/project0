@@ -19,7 +19,21 @@
 3. 启动：`bash scripts/start_all.sh`
 
 ## 目录结构
-（简要列出一级目录及说明）
+| 一级目录 | 放什么 |
+|----------|--------|
+| `docs/` | 所有非代码文档：定义、规划、架构、设计、部署、标定、测试 [2][7] |
+| `hardware/` | BOM、接线图PDF、机械图、实物照片 [5] |
+| `firmware/` | STM32全部固件代码，CubeMX工程 [15] |
+| `src/` | ROS2所有功能包，按职责拆包 [5][15] |
+| `config/` | 全局参数YAML/Lua，与launch配合 [9] |
+| `scripts/` | Shell/Python工具脚本，启动、自检、数据分析 [9] |
+| `data/` | rosbag、地图文件、日志、标定数据（大文件）[9] |
+| `experiments/` | 按实验编号组织，每个实验含设计-数据-结果-结论 [7] |
+| `simulation/` | Gazebo世界、模型、仿真launch [5] |
+| `reports/` | 迭代一报告、迭代二报告、总报告 [1][13] |
+| `presentation/` | 视频、PPT、一页纸、答辩QA、亮点总结 [1][7] |
+| `process/` | 决策记录、问题日志、学习笔记、失败案例、复盘、周记 [2][3] |
+
 
 ## 版本记录
 见 CHANGELOG.md
