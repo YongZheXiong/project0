@@ -1,0 +1,36 @@
+# ROS2 build
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Data (large files)
+data/bags/
+data/logs/
+data/calibration_data/
+
+# Videos
+presentation/demo_videos/*.mp4
+presentation/demo_videos/*.mkv
+
+# CAD
+hardware/mechanical/*.step
+hardware/mechanical/*.stl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Compiled firmware
+firmware/build/
+firmware/Debug/
+firmware/Release/
