@@ -1,7 +1,7 @@
 # Changelog
 
-## [init-repo] - 2026-04-17
-### Added
-- Initialized Project0 repository
-- Reorganized docs structure
-- Added P0/P1 documentation skeleton
+## [初始化仓库] - 2026-04-17
+### 新增内容
+- 初始化Project0的仓库
+- 重组文档结构
+- 新增了 P0/P1 文档骨架
