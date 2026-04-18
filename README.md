@@ -59,17 +59,17 @@ project0/
 ### P1 架构与选型（进行中）
 
 | 文档 | 路径 | 说明 | 状态 |
-|------|------|------|------|
-| 功能条目展开 | `docs/workflow/iter1_function_items.md` | 十项能力→中粒度功能条目 | ✅ 完成 |
-| 功能清单与技术选型 | `docs/workflow/iter1_function_list.md` | 功能+选型表 | ✅ 完成 |
-| 系统总架构 | `docs/architecture/system_architecture.md` | 八模块+主辅链路 | ✅ 完成 |
-| 软件架构 | `docs/architecture/software_architecture.md` | ROS2包划分+节点规划 | ✅ 完成 |
-| 信息流设计 | `docs/architecture/information_flow.md` | 话题/服务/数据流 | ✅ 完成 |
-| 项目流程 | `docs/workflow/project_workflow.md` | P0-P10全阶段流程 | ✅ 完成 |
-| 里程碑时间表 | `docs/workflow/milestone_timeline.md` | M1/M2/M3时间节点 | ✅ 完成 |
-| 硬件方案与BOM | - | 待启动 | ⬜ |
+| --- | --- | --- | --- |
+| 功能条目展开 | `docs/workflow/iter1_function_items.md` | 十项能力到中粒度功能条目 | ✅ 完成 |
+| 功能清单与技术选型 | `docs/workflow/iter1_function_list.md` | 功能与选型表 | ✅ 完成 |
+| 系统总架构 | `docs/architecture/system_architecture.md` | 八模块与主辅链路 | ✅ 完成 |
+| 软件架构 | `docs/architecture/software_architecture.md` | ROS 2 包划分与节点规划 | ✅ 完成 |
+| 信息流设计 | `docs/architecture/information_flow.md` | 话题、服务与数据流 | ✅ 完成 |
+| 项目流程 | `docs/workflow/project_workflow.md` | P0 到 P10 全阶段流程 | ✅ 完成 |
+| 里程碑时间表 | `docs/workflow/milestone_timeline.md` | M1、M2、M3 时间节点 | ✅ 完成 |
+| 硬件方案与 BOM | - | 待启动 | ⬜ |
 | 工程环境搭建 | - | 待启动 | ⬜ |
-| WBS与Sprint规划 | - | 待启动 | ⬜ |
+| WBS 与 Sprint 规划 | - | 待启动 | ⬜ |
 
 ## 阶段进度
 
