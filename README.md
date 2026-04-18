@@ -1,42 +1,118 @@
-# Project0 — 地面移动具身智能平台
+# 项目0（Project Zero）
 
-## 项目简介
-面向教学楼室内走廊场景的具身智能小车平台，具备感知—定位—导航—语义理解—安全保护闭环能力。
+> 面向教学楼走廊场景的具身智能地面移动平台
 
-## 项目状态
-当前阶段：P1 / 版本：V0.1
+## 项目概述
 
-## 硬件平台
-- 计算：Jetson Orin NX 16GB
-- 下位机：STM32F407ZGT6
-- 激光雷达：Livox Mid-360
-- 深度相机：Intel RealSense D435
-- 底盘：四轮差速（GB37-555 ×4）
+项目0是一个单人solo开发的具身智能小车平台项目，面向广东工业大学教学楼单层回字形走廊真实场景，目标是构建一个具备感知—决策—执行闭环、语义导航能力、安全约束机制的类产品级基础平台，并在此基础上进行能力增强与科研验证。
 
-## 快速开始
-1. 环境部署：见 `docs/04_deployment/`
-2. 编译：`colcon build`
-3. 启动：`bash scripts/start_all.sh`
+## 当前状态
 
-## 目录结构
-| 一级目录 | 放什么 |
-|----------|--------|
-| `docs/` | 所有非代码文档：定义、规划、架构、设计、部署、标定、测试 [2][7] |
-| `hardware/` | BOM、接线图PDF、机械图、实物照片 [5] |
-| `firmware/` | STM32全部固件代码，CubeMX工程 [15] |
-| `src/` | ROS2所有功能包，按职责拆包 [5][15] |
-| `config/` | 全局参数YAML/Lua，与launch配合 [9] |
-| `scripts/` | Shell/Python工具脚本，启动、自检、数据分析 [9] |
-| `data/` | rosbag、地图文件、日志、标定数据（大文件）[9] |
-| `experiments/` | 按实验编号组织，每个实验含设计-数据-结果-结论 [7] |
-| `simulation/` | Gazebo世界、模型、仿真launch [5] |
-| `reports/` | 迭代一报告、迭代二报告、总报告 [1][13] |
-| `presentation/` | 视频、PPT、一页纸、答辩QA、亮点总结 [1][7] |
-| `process/` | 决策记录、问题日志、学习笔记、失败案例、复盘、周记 [2][3] |
+| 项目 | 状态 |
+|------|------|
+| 当前阶段 | P1：功能落地、技术选型与工程准备 |
+| 当前版本 | V0.1（前置准备阶段） |
+| 最近更新 | 软件架构、信息流文档完成 |
 
+## 项目结构
+
+project0/
+├── docs/
+│   ├── definition/                      # P0 项目定义文档
+│   │   ├── system_positioning.md        # 最终系统定位
+│   │   ├── objective_constraints.md     # 客观限制
+│   │   ├── subjective_requirements.md   # 主观需求
+│   │   ├── iter1_core_capabilities.md   # 迭代一核心能力
+│   │   ├── iter2_enhancement_scope.md   # 迭代二增强能力
+│   │   └── overall_deliverables.md      # 整体成果形态
+│   ├── architecture/                    # 架构文档
+│   │   ├── system_architecture.md       # 系统总架构
+│   │   ├── software_architecture.md     # 软件架构
+│   │   └── information_flow.md          # 信息流设计
+│   ├── workflow/                        # 流程与规划
+│   │   ├── project_workflow.md          # 项目流程（第二版）
+│   │   ├── milestone_timeline.md        # 里程碑时间表
+│   │   ├── iter1_function_items.md      # 迭代一功能条目展开
+│   │   └── iter1_function_list.md       # 迭代一功能清单与技术选型
+│   └── logs/                            # 过程记录
+│       └── sync_log.md                  # 同步与更新记录
+├── src/                                 # 源代码（P2开始）
+├── config/                              # 配置文件（P2开始）
+├── scripts/                             # 脚本工具
+├── media/                               # 素材（视频、截图、P2开始采集）
+└── README.md
+
+
+## 文档索引
+
+### P0 项目定义（已锁定）
+
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| 最终系统定位 | `docs/definition/system_positioning.md` | 项目场景、平台定位 |
+| 客观限制 | `docs/definition/objective_constraints.md` | 硬件、场地、人力等约束 |
+| 主观需求 | `docs/definition/subjective_requirements.md` | 个人目标与项目要求 |
+| 迭代一核心能力 | `docs/definition/iter1_core_capabilities.md` | 十项核心能力定义 |
+| 迭代二增强能力 | `docs/definition/iter2_enhancement_scope.md` | 增强方向与分阶段策略 |
+| 整体成果形态 | `docs/definition/overall_deliverables.md` | 成果体系定义 |
+
+### P1 架构与选型（进行中）
+
+| 文档 | 路径 | 说明 | 状态 |
+|------|------|------|------|
+| 功能条目展开 | `docs/workflow/iter1_function_items.md` | 十项能力→中粒度功能条目 | ✅ 完成 |
+| 功能清单与技术选型 | `docs/workflow/iter1_function_list.md` | 功能+选型表 | ✅ 完成 |
+| 系统总架构 | `docs/architecture/system_architecture.md` | 八模块+主辅链路 | ✅ 完成 |
+| 软件架构 | `docs/architecture/software_architecture.md` | ROS2包划分+节点规划 | ✅ 完成 |
+| 信息流设计 | `docs/architecture/information_flow.md` | 话题/服务/数据流 | ✅ 完成 |
+| 项目流程 | `docs/workflow/project_workflow.md` | P0-P10全阶段流程 | ✅ 完成 |
+| 里程碑时间表 | `docs/workflow/milestone_timeline.md` | M1/M2/M3时间节点 | ✅ 完成 |
+| 硬件方案与BOM | - | 待启动 | ⬜ |
+| 工程环境搭建 | - | 待启动 | ⬜ |
+| WBS与Sprint规划 | - | 待启动 | ⬜ |
+
+## 阶段进度
+
+| 阶段 | 名称 | 归属 | 状态 |
+|------|------|------|------|
+| P0 | 项目定义收束 | 前置准备 | ✅ 完成 |
+| P1 | 功能落地、技术选型与工程准备 | 前置准备 | 🔄 进行中 |
+| P2 | 底盘与基础运动成立 | 迭代一 | ⬜ |
+| P3 | 感知与定位建图成立 | 迭代一 | ⬜ |
+| P4 | 导航与避障成立 | 迭代一 | ⬜ |
+| P5 | 语义导航与任务调度成立 | 迭代一 | ⬜ |
+| P6 | 系统集成与迭代一验收 | 迭代一 | ⬜ |
+| P7-P9 | 迭代二增强 | 迭代二 | ⬜ |
+| P10 | 实验收束与成果表达 | 收束 | ⬜ |
+
+## 里程碑
+
+| 里程碑 | 目标时间 | 内容 |
+|--------|----------|------|
+| M1 | 大三上之前 | 迭代一完成，平台最小闭环成立 |
+| M2 | 考研前 | 迭代二完成，能力增强+科研验证 |
+| M3 | 复试前 | 项目整体收束，报告/PPT/视频/答辩 |
+
+## 技术栈
+
+- **计算平台**: Jetson Orin NX + STM32
+- **传感器**: Livox Mid-360, Intel RealSense D435, IMU, 编码器
+- **软件框架**: ROS2 Humble, Ubuntu 22.04
+- **核心算法**: FAST-LIO2 (SLAM), Nav2 (导航)
+- **语义导航**: YAML语义位置表 + 字符串匹配（迭代一）
+
+## 系统架构概要
+
+**主链路**: 执行层 → 感知层 → 空间认知层 → 行动规划层 → 任务决策层（闭环）
+
+**辅助链路**: 安全保障 | 系统管理 | 数据记录
+
+**软件包**: p0_base_bridge, p0_sensor_drivers, p0_localization, p0_mapping, p0_map_manager, p0_navigation, p0_semantic_nav, p0_task_manager, p0_safety_manager, p0_system_manager, p0_bringup, p0_data_tools, p0_interfaces
 
 ## 版本记录
-见 CHANGELOG.md
 
-## 作者
-xiongyongzhe / GDUT
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| V0.1 | 当前 | P0-P1前半段完成，定义+架构+选型文档就绪 |
+| V1.0 | 计划 | 迭代一验收通过 |
+| V2.0 | 计划 | 迭代二完成 |
