@@ -15,33 +15,90 @@
 | 最近更新 | 软件架构、信息流文档完成 |
 
 ## 项目结构
-
+```text
 project0/
-├── docs/
-│   ├── definition/                      # P0 项目定义文档
-│   │   ├── system_positioning.md        # 最终系统定位
-│   │   ├── objective_constraints.md     # 客观限制
-│   │   ├── subjective_requirements.md   # 主观需求
-│   │   ├── iter1_core_capabilities.md   # 迭代一核心能力
-│   │   ├── iter2_enhancement_scope.md   # 迭代二增强能力
-│   │   └── overall_deliverables.md      # 整体成果形态
-│   ├── architecture/                    # 架构文档
-│   │   ├── system_architecture.md       # 系统总架构
-│   │   ├── software_architecture.md     # 软件架构
-│   │   └── information_flow.md          # 信息流设计
-│   ├── workflow/                        # 流程与规划
-│   │   ├── project_workflow.md          # 项目流程（第二版）
-│   │   ├── milestone_timeline.md        # 里程碑时间表
-│   │   ├── iter1_function_items.md      # 迭代一功能条目展开
-│   │   └── iter1_function_list.md       # 迭代一功能清单与技术选型
-│   └── logs/                            # 过程记录
-│       └── sync_log.md                  # 同步与更新记录
-├── src/                                 # 源代码（P2开始）
-├── config/                              # 配置文件（P2开始）
-├── scripts/                             # 脚本工具
-├── media/                               # 素材（视频、截图、P2开始采集）
-└── README.md
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── .gitignore
+│
+├── docs/                                   # 【文档层】全部文档
+│   ├── 00_definition/                      # P0：项目定义文件集
+│   │   ├── system_positioning.md           # 最终系统定位
+│   │   ├── objective_constraints.md        # 客观限制
+│   │   ├── subjective_requirements.md      # 主观需求
+│   │   ├── iter1_core_capabilities.md      # 迭代一核心能力
+│   │   ├── iter2_enhancement_scope.md      # 迭代二增强能力
+│   │   ├── overall_deliverables.md         # 整体成果形态
+│   │   ├── version_roadmap.md              # 版本线路图
+│   │   └── milestone_timeline.md           # 里程碑时间表
+│   │
+│   ├── 01_planning/                        # P1：功能落地与技术选型
+│   │   ├── iter1_function_list.md          # 迭代一功能清单与技术选型表
+│   │   └── iter1_function_items.md         # 迭代一功能条目展开表
+│   │
+│   ├── 02_architecture/                    # P1：系统架构设计
+│   │   ├── system_architecture.md          # 系统总架构
+│   │   ├── compute_comm_architecture.md    # 计算与通信架构
+│   │   └── software_architecture.md        # 软件架构与数据流
+│   │
+│   ├── 03_design/                          # P2-P6：各模块详细设计（逐步建立）
+│   │
+│   ├── 04_deployment/                      # 环境部署与运行说明            
+│   │
+│   ├── 05_calibration/                     # 标定记录（P2-P3建立）
+│   │
+│   ├── 06_testing/                         # 【测试层】测试计划与记录
+│   │
+│   └── 07_iter2/                           # 迭代二专用文档（P7+建立）
+│
+├── hardware/                               # 【硬件层】                     
+│
+├── firmware/                               # 【固件层】STM32代码            
+│
+├── src/                                    # 【ROS2软件层】ROS2 workspace的src
+│
+├── config/                                 # 【配置层】全局配置汇总
+│
+├── scripts/                                # 【脚本层】工具脚本              
+│
+├── data/                                   # 【数据层】运行数据
+│               
+├── experiments/                            # 【实验层】
+│
+├── simulation/                             # 仿真环境（P1建立，辅助用）
+│
+├── reports/                                # 【报告层】
+│
+├── presentation/                           # 【展示与答辩层】
+│
+└── process/                                # 【过程沉淀层】
+    ├── decisions/                          # 决策记录
+    │   ├──DEC-001-iteration-roadmap-no-rewrite.md
+    │   ├──DEC-002-base-communication-uart-binary-protocol.md
+    │   ├──DEC-003-slam-fastlio2-mid360-imu-only.md
+    │   ├──DEC-004-navigation-nav2-navfn-rpp.md
+    │   ├──DEC-005-semantic-nav-yaml-rule-based.md
+    │   ├──DEC-006-task-manager-behaviortree-cpp.md
+    │   ├──DEC-007-system-mode-arbitration-by-system-manager.md
+    │   ├──DEC-008-safety-owned-by-safety-manager.md
+    │   ├──DEC-009-semantic-location-owned-by-map-manager.md
+    │   └──DEC-010-4wd-differential-drive-chassis.md    
+    ├── problem_log/                        # 问题日志
+    │   
+    ├── learning_notes/                     # 学习笔记
+    │   
+    ├── experiment_log/                     # 实验日志（日常简记）
+    │   
+    ├── failure_cases/                      # 失败案例集
+    │   
+    ├── retrospectives/                     # 复盘记录
+    │    
+    └── weekly_log/                         # 周记/进度记录
+        └── 2026_WXX_example.md
+```
 
+---
 
 ## 文档索引
 
