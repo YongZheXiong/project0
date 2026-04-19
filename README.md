@@ -9,7 +9,7 @@
 | 项目 | 状态 |
 |------|------|
 | 当前阶段 | P1：功能落地、技术选型与工程准备 |
-| 当前版本 | V0.1.1|
+| 当前版本 | V0.2.0|
 | 最近更新 | 软件架构、信息流文档完成 |
 
 ## 硬件平台
@@ -44,9 +44,13 @@ project0/
 ├── reports/                # 报告
 ├── presentation/           # 展示与答辩
 └── process/                # 过程沉淀
-    ├── decisions/          # 决策记录
-    ├── learning_notes/
-    └── weekly_log/         # 周记
+|   ├── decisions/          # 决策记录
+|   ├── learning_notes/
+|   └── weekly_log/         # 周记
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+└── .gitignore
 ```
 
 ---
