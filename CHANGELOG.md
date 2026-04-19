@@ -5,10 +5,11 @@ All notable changes to Project-0 will be documented in this file.
 ## [Unreleased]
 
 ### Added
--新增了 power_architecture.md
-
+- 新增了 power_architecture.md
+- 新增了 电源构架的一系列决策记录文件
+- 新增了 hardware_architecture.md
 ### Changed
--
+-统一了 决策文件的命名标准
 
 ### Deprecated
 -
