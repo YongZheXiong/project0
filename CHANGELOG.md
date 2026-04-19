@@ -5,7 +5,7 @@ All notable changes to Project-0 will be documented in this file.
 ## [Unreleased]
 
 ### Added
--
+-新增了 power_architecture.md
 
 ### Changed
 -
