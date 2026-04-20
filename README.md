@@ -9,8 +9,8 @@
 | 项目 | 状态 |
 |------|------|
 | 当前阶段 | P1：功能落地、技术选型与工程准备 |
-| 当前版本 | V0.2.1|
-| 最近更新 |新增power_architecture.md,电源构架的一系列决策记录文件,hardware_architecture.md,硬件架构的一系列决策记录文件.统一了决策文件的命名标准 |
+| 当前版本 | V0.2.1 |
+| 最近更新 | 重构并重写了software_architecture.md |
 
 ## 硬件平台
 - 计算：Jetson Orin NX 16GB
