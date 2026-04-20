@@ -8,8 +8,10 @@ All notable changes to Project-0 will be documented in this file.
 - 新增了 power_architecture.md
 - 新增了 电源构架的一系列决策记录文件
 - 新增了 hardware_architecture.md
+- 新增了 硬件架构的一系列决策记录文件
+
 ### Changed
--统一了 决策文件的命名标准
+- 统一了 决策文件的命名标准
 
 ### Deprecated
 -
@@ -42,7 +44,7 @@ All notable changes to Project-0 will be documented in this file.
 
 ---
 
-## [0.1.1] - 2026-4-17
+## [0.2.0] - 2026-4-17
 
 ### Added
 - 新增了 iter1_function_list.md
