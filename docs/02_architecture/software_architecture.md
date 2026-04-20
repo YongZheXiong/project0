@@ -1,909 +1,544 @@
-# 项目0软件架构设计
+# 1. 文档定位
 
----
+本文档属于项目0在 P1 阶段的系统架构设计输出物之一，放置在 docs/02_architecture/ 目录下，与 system_architecture.md、compute_comm_architecture.md、power_architecture.md、hardware_architecture.md 并列管理。
 
-## 1. 文档定位
+根据项目文件结构设计，software_architecture.md 是 P1 阶段正式架构文档之一，用于承接系统总架构中未展开的软件实现层内容，并为后续 interface_definition.md、docs/03_design/ 下的各模块设计文档、docs/04_deployment/ 下的部署运行文档提供上位软件骨架。
 
-本文档在《项目0系统总架构设计》和《项目0计算与通信架构》之下，进一步回答以下问题：
+本文档的目标不是直接替代源代码目录说明、接口字段定义表或 launch 具体实现，而是为迭代一平台提供一个真实可运行、可维护、可扩展、可联调、可验收的软件基线方案，以支撑后续 P2-P6 的底盘控制、传感器接入、定位建图、导航避障、语义导航、任务调度与系统集成验收。
 
-1. **ROS2 软件系统如何组织**
-2. **各功能应划分为哪些软件包**
-3. **各包之间通过哪些话题 / 服务 / 动作接口交互**
-4. **主链路与辅助链路在软件层面如何贯通**
-5. **数据流、控制流、状态流如何在软件系统中展开**
+----------------------------------------
 
-本文档属于**软件架构**，因此：
+# 2. 阶段归属与依赖关系
 
-### 1.1 本文档纳入的内容
-- ROS2 workspace 总体结构
-- 软件包划分
-- 包职责边界
-- 话题 / 服务 / 动作接口定义
-- 数据流、控制流、状态流设计
-- 启动组织与模式化运行的软件层关系
-- 迭代一到迭代二的软件架构演进边界
+项目0总体流程采用 P0-P10 分阶段推进方式，其中 P1 的本质是“功能落地、技术选型与工程准备”，P2 才进入“底盘与基础运动成立”，P3 进入“感知与定位建图成立”，P4 进入“导航与避障成立”，P5 进入“语义导航与任务调度成立”，P6 进入“系统集成与迭代一验收”。
 
-### 1.2 本文档不纳入的内容
-- 不定义具体源代码实现
-- 不定义具体算法内部细节
-- 不定义具体参数取值
-- 不定义物理接线
-- 不定义电源供电方式
-- 不定义具体协议字段字节布局
-- 不定义模块内部类设计与文件级实现
-- 不定义测试用例与验收流程
+因此，软件架构文档属于 P1 的正式输出，直接服务于以下后续阶段：
 
-因此，本文档的角色是：  
-**把系统总架构与计算通信架构，进一步落到 ROS2 软件组织、接口关系和运行链路层面。** :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
+* P2：建立底盘桥接软件骨架、底盘控制链路、启动与调试脚本基础、基础自检与状态观测能力；
+* P3：建立 Mid360 / D435 接入链路、建图链路、定位链路、地图管理链路与数据记录基础；
+* P4：建立导航避障链路、安全保障链路与模式切换链路；
+* P5：建立语义导航、任务调度与语义位置查询链路；
+* P6：完成系统管理、运行准入、状态聚合、记录复盘与迭代一验收支撑。
+本文档的直接前置依赖包括：
 
----
+* docs/00_definition/ 下的项目定义文件集，用于锁定项目整体定位、约束、迭代边界与成果目标；
+* system_architecture.md，用于提供“执行层—感知层—空间认知层—行动规划层—任务决策层”的五层主链路骨架，以及“安全保障链路—系统管理链路—数据记录与复盘链路”的三条辅助链路骨架；
+* compute_comm_architecture.md，用于提供 Orin NX 作为主计算与 ROS2 主承载平台、STM32 作为底层执行控制平台的计算与通信边界；
 
-## 2. 架构输入与前提
+本文档的直接后继文档包括：
+* interface_definition.md：承接本文档中的架构级接口关系，进一步落实为话题、服务、动作名称与字段定义；
+* docs/03_design/ 下各模块详细设计文档：承接本文档中的软件包职责边界，展开到节点、参数、状态机与实现逻辑；
+* docs/04_deployment/ 下部署运行文档：承接本文档中的 workspace 结构、模式启动方式与运行依赖；
+* docs/06_testing/ 下测试文档：承接本文档中的最小闭环、状态观测与验收相关支撑点。
 
-本软件架构建立在以下已确定前提之上：
+----------------------------------------
 
-- 项目0采用“执行层—感知层—空间认知层—行动规划层—任务决策层”的五层主链路，以及安全、系统管理、数据记录三条辅助链路。软件架构必须承接这一骨架，而不能重新定义系统分层。:contentReference[oaicite:2]{index=2}
-- 项目0采用“Orin NX 为唯一主计算与主控平台、STM32F407 为唯一底层执行控制平台”的主从式计算与通信架构。ROS2 主业务统一运行在 Orin NX，STM32 不运行 ROS2 主业务。:contentReference[oaicite:3]{index=3}
-- 传感器接入为：Mid360 与 D435 均接入 Orin NX；编码器和电机控制接入 STM32。:contentReference[oaicite:4]{index=4} :contentReference[oaicite:5]{index=5}
-- 当前已锁定：**迭代一阶段的 IMU 正式主路径为 Mid360 内置 IMU，经 Livox 驱动在 Orin NX 上直接发布。** 因此软件架构中，SLAM 正式 IMU 输入来自 Mid360 驱动链路；STM32 上传 IMU 的路径不作为迭代一正式主接口，仅保留为后续兼容扩展说明。
-- 迭代一目标是做成最小闭环正式成立的平台；迭代二是在此基础上增强，而非推翻。软件架构必须从一开始就保证可扩展，但不能为了未来扩展把当前结构做得过重。:contentReference[oaicite:6]{index=6} :contentReference[oaicite:7]{index=7}
+# 3. 软件架构设计目标
 
----
+结合项目0的系统定位、客观约束、主观需求、迭代路线与整体成果要求，项目0软件架构在 P1 阶段应同时满足以下目标：
 
-## 3. 软件架构总原则
+## 3.1 支撑迭代一最小闭环成立
 
-### 3.1 单一主工作空间
-项目0在 Orin NX 上采用**单一主 ROS2 workspace** 承载全部主业务软件。  
-其目的是：
-- 降低单人开发复杂度
-- 保持依赖关系清晰
-- 统一构建、部署和版本管理
-- 便于后续阶段持续迭代
+软件架构必须优先服务于迭代一平台主干能力成立，而不是追求一开始就做成高复杂度、多分支、研究型重架构。
 
-### 3.2 按系统职责分包，而不是按代码实现技巧分包
-软件包划分优先服从：
-- 系统总架构边界
-- 计算与通信架构边界
-- 调试与联调边界
-- 未来迭代增强边界
+因此，软件架构首先要保证以下闭环可逐步成立：
 
-而不是为了代码复用过早做过细拆分。
+* 底盘控制与状态回传闭环；
+* 传感器接入与建图闭环；
+* 地图加载、定位与导航闭环；
+* 语义目标解析与任务执行闭环；
+* 安全监测、系统管理、数据记录三条辅助闭环。
 
-### 3.3 接口显式化
-各软件包之间的主交互必须通过明确的：
-- 话题
-- 服务
-- 动作  
-来组织，而不是依赖隐式耦合。
+## 3.2 与总架构保持一致而不重复定义总架构
 
-### 3.4 业务链路与辅助链路分离
-主链路包与安全/管理/记录类包在逻辑上分离，避免：
-- 导航逻辑和安全逻辑耦死
-- 任务逻辑和系统管理逻辑混杂
-- 数据记录代码侵入业务主干
+本文档不是对 system_architecture.md 的重新定义，而是在既有总架构骨架上的软件层展开。
 
-### 3.5 迭代一先落地，迭代二可扩展
-软件架构在迭代一阶段必须：
-- 先能跑通主链路
-- 先把安全、管理、记录骨架搭起来  
-在此基础上，再允许迭代二在包内增强或少量增包，而不推翻整体组织。:contentReference[oaicite:8]{index=8}
+因此，本文档必须严格承接总架构中的：
 
----
+* 五层主链路骨架；
+* 三条辅助链路骨架；
+* 真实走廊场景、真机闭环验收、安全底线优先、平台属性优先的总原则。
 
-## 4. ROS2 workspace 结构
+## 3.3 与计算与通信架构保持一致
 
-项目0推荐采用以下 ROS2 workspace 结构：
+软件架构必须服从 compute_comm_architecture.md 中已经确定的计算与执行边界：Orin NX 负责主计算、ROS2 主业务与系统协调，STM32 负责底层电机执行、底层状态采集与硬实时相关控制，不运行 ROS2 主业务。
+
+因此，软件架构必须体现以下原则：
+
+* ROS2 主业务统一承载于 Orin NX；
+* STM32 通过底盘桥接包接入 ROS2 世界；
+* 软件分层不能让底盘固件越级理解导航、任务和语义；
+* 软件接口组织应服务于串口 / USB / 以太网等既定通信通道，而不重新发明跨层职责。
+
+## 3.4 满足单人可实施、可维护、可扩展
+
+项目0由单人推进，软件架构必须避免多工作区、多主控、多套不稳定软件栈并行演进造成的复杂度失控。
+
+因此，软件架构必须做到：
+
+* 结构清晰；
+* 职责边界稳定；
+* 最小闭环可独立验证；
+* 问题可定位、数据可记录、状态可复盘；
+* 迭代二在不推翻架构骨架前提下增强。
+
+----------------------------------------
+
+# 4. 架构边界声明
+
+## 4.1 本文档明确纳入的内容
+
+本文档明确纳入以下内容：
+
+* ROS2 软件总体承载方式；
+* 软件主工作区组织原则；
+* 主要软件包划分；
+* 各软件包的一句话职责边界；
+* 主链路与辅助链路的软件映射关系；
+* 架构级数据流、控制流、状态流；
+* 架构级话题 / 服务 / 动作接口关系；
+* 模式化启动的软件组织原则；
+* 迭代一到迭代二的软件演进边界。
+
+## 4.2 本文档明确不纳入的内容
+
+本文档明确不纳入以下内容：
+
+* 具体节点名、回调逻辑与类设计；
+* 具体接口字段定义与消息文件最终格式；
+* 具体算法流程细节与参数取值；
+* Nav2、SLAM、驱动等第三方组件的参数调优细节；
+* 串口协议字段级设计；
+* 具体部署命令、编译命令与环境安装步骤；
+* 具体测试用例、指标与实验流程；
+* STM32 固件内部任务划分细节。
+
+## 4.3 后续应由其他文档承接的内容
+
+以下内容应由后续文档承接：
+
+* interface_definition.md：承接具体消息、服务、动作定义与跨包接口表；
+* docs/03_design/：承接底盘控制、感知、SLAM、导航、语义导航、任务调度、安全机制、系统管理等模块的详细设计；
+* docs/04_deployment/：承接 ROS2 workspace 搭建、Orin NX 环境部署、运行说明与远程开发方案；
+* docs/06_testing/：承接测试计划、验收标准、测试场景与测试记录；
+
+----------------------------------------
+
+# 5. 软件总体承载方式
+
+项目0采用以 Orin NX 为主计算平台、以单一主 ROS2 workspace 为软件主承载结构的软件架构。
+
+这里的“单一主 ROS2 workspace”含义是：项目0在 Orin NX 上以一套统一的 ROS2 工程空间承载迭代一的主业务软件包、自定义接口包、启动组织、配置文件与运行脚本，以降低单人开发过程中的依赖分裂、构建分裂与版本分裂风险。
+
+STM32 不运行 ROS2 主业务，不参与主工作区中的 ROS2 包组织；STM32 作为底层执行控制平台，以独立固件工程形式存在，并通过 p0_base_bridge 与 ROS2 世界交互。
+
+该承载方式同时符合以下约束与要求：
+
+* 工程优先于花哨功能；
+* 真机主线、仿真辅助；
+* 安全底线优先；
+* 平台成立优先于高复杂度炫技；
+* 后续需保留研究增强空间。
+
+----------------------------------------
+
+# 6. 软件主工作区与仓库组织关系
+
+根据项目文件结构设计，项目总仓库采用 project0/ 作为统一根目录，其中 docs/、firmware/、src/、config/、scripts/、data/、experiments/、simulation/、reports/、presentation/、process/ 等目录共同构成项目整体工程与成果沉淀结构。
+
+在软件架构层，建议将项目总仓库根目录同时作为 ROS2 主工作区根目录使用，避免额外再套一层独立 workspace 目录，从而降低单人维护复杂度，并保持与文件结构设计方案一致。
+
+推荐目录关系如下：
 
 ```text
-project0_ws/
-├── src/
-│   ├── p0_interfaces/
-│   ├── p0_bringup/
-│   ├── p0_sensor_drivers/
-│   ├── p0_base_bridge/
-│   ├── p0_localization/
-│   ├── p0_mapping/
-│   ├── p0_map_manager/
-│   ├── p0_navigation/
-│   ├── p0_semantic_nav/
-│   ├── p0_task_manager/
-│   ├── p0_safety_manager/
-│   ├── p0_system_manager/
-│   ├── p0_data_tools/
-│   ├── third_party/
-│   │   ├── livox_ros_driver2/
-│   │   ├── realsense2_camera/
-│   │   ├── fast_lio2_ros2/
-│   │   ├── nav2_related/
-│   │   └── behaviortree_cpp_related/
-│   └── stm32_firmware_docs/   （文档/协议说明，不参与ROS2构建）
-├── config/
-│   ├── sensors/
-│   ├── base/
-│   ├── localization/
-│   ├── navigation/
-│   ├── semantic/
-│   ├── safety/
-│   ├── system/
-│   └── modes/
-├── maps/
-├── launch/
-├── scripts/
-├── bags/
-├── logs/
+project0/
 ├── docs/
-└── README.md
-````
-
----
-
-## 5. workspace 分层说明
-
-### 5.1 src
-
-放置所有 ROS2 软件包与第三方依赖源码。
-
-### 5.2 config
-
-统一存放 YAML 等配置文件，按功能域分目录管理，避免配置散落到各包内部。
-
-### 5.3 maps
-
-存放地图文件、地图版本和语义位置表等地图相关静态资源。
-
-### 5.4 launch
-
-存放按模式组织的启动入口，如：
-
-* 建图模式
-* 定位运行模式
-* 自主任务模式
-* 调试模式
-
-### 5.5 scripts
-
-存放非核心业务脚本，如一键启动、日志整理、bag 管理、地图保存辅助脚本等。
-
-### 5.6 bags / logs
-
-分别存放运行数据包和日志，支撑复盘与实验记录。
-这与项目0强调的数据记录与复盘能力一致。
-
-### 5.7 docs
-
-存放协议说明、部署说明、模式说明、接口表、版本说明等文档，与项目总文件夹长期共存。
-
----
-
-## 6. 软件包划分总览
-
-项目0软件包建议划分为以下 12 个核心包 + 若干第三方包。
-
-| 包名                | 类型       | 角色定位                     |
-| ----------------- | -------- | ------------------------ |
-| p0_interfaces     | 自定义接口包   | 统一定义项目内部消息、服务、动作         |
-| p0_bringup        | 启动组织包    | 统一管理 launch 入口与模式化启动     |
-| p0_sensor_drivers | 感知接入整合包  | 组织传感器驱动接入与感知状态监测         |
-| p0_base_bridge    | 底盘桥接包    | 管理 Orin NX ↔ STM32 的软件桥接 |
-| p0_localization   | 定位包      | 提供定位链路和定位状态输出            |
-| p0_mapping        | 建图包      | 提供建图链路                   |
-| p0_map_manager    | 地图管理包    | 地图保存、加载、运行地图管理、语义位置表管理   |
-| p0_navigation     | 导航包      | 目标管理、导航调度、路径执行、导航异常处理    |
-| p0_semantic_nav   | 语义导航包    | 语义目标解析与导航目标转换            |
-| p0_task_manager   | 任务管理包    | 任务生命周期与模式协调              |
-| p0_safety_manager | 安全管理包    | 安全监测、软件急停、风险约束、保护处置      |
-| p0_system_manager | 系统管理包    | 启停、自检、状态管理、配置管理、运行监控     |
-| p0_data_tools     | 数据记录与复盘包 | 记录组织、事件记录、回放辅助、复盘支撑      |
-
-第三方包主要包括：
-
-* livox_ros_driver2
-* realsense2_camera
-* FAST-LIO2 ROS2 版本
-* Nav2 相关包
-* BehaviorTree.CPP 相关依赖
-
-所有第三方包通过 Git submodule 引入或在 docs/dependencies.md 中记录使用的 commit hash / release tag。后续升级需显式评估兼容性后进行。
----
-
-## 7. 各软件包职责定义
-
----
-
-## 7.1 p0_interfaces
-
-### 7.1.1 作用
-
-统一定义项目0内部的自定义：
-
-* msg
-* srv
-* action
-
-### 7.1.2 设计原则
-
-* 凡是跨包通用、且标准消息无法直接表达的结构，放入本包
-* 凡是可能在多包间共享的任务状态、安全状态、系统状态、语义目标结构，统一在此定义
-* 避免各包私自定义重复数据结构
-
-### 7.1.3 典型接口类型
-
-* BaseState
-* SystemState
-* SafetyState
-* SemanticGoal
-* TaskState
-* SemanticNav.action
-* SystemMode.srv
-* SaveMap.srv
-* LoadMap.srv
-
----
-
-## p0_interfaces 初始接口清单（骨架版，后续迭代增补）
-
-### Messages
-- ChassisCmd.msg          # 上位机→底盘：速度指令
-- ChassisStatus.msg       # 底盘→上位机：底盘状态（通信状态、编码器、电压等）
-- SystemStatus.msg        # 系统管理：当前模式、各模块在线状态
-- SafetyEvent.msg         # 安全管理：安全事件类型、等级、时间戳
-- LocalizationStatus.msg  # 定位模块：定位质量等级（Good/Degraded/Lost）
-
-### Services
-- GetSemanticPose.srv     # 查询语义位置 → geometry_msgs/PoseStamped
-- SetSystemMode.srv       # 请求切换系统模式
-- TriggerEmergencyStop.srv # 触发/解除急停
-
-### Actions
-- NavigateToSemantic.action # 语义导航任务（目标名称 → 导航执行 → 结果反馈）
-
----
-
-## 7.2 p0_bringup
-
-### 7.2.1 作用
-
-统一管理系统启动入口，不承载业务逻辑。
-
-### 7.2.2 主要内容
-
-* 建图模式 launch
-* 定位运行模式 launch
-* 自主任务模式 launch
-* 调试模式 launch
-* 仅底盘调试模式 launch
-* 仅感知调试模式 launch
-
-### 7.2.3 边界
-
-* 不实现业务节点
-* 只负责任务式、模式式启动组织
-
----
-
-## 7.3 p0_sensor_drivers
-
-### 7.3.1 作用
-
-作为感知接入整合包，对第三方驱动和项目内部感知状态管理做统一组织。
-
-### 7.3.2 主要职责
-
-* 启动 Mid360 驱动
-* 启动 D435 驱动
-* 感知状态监测
-* 感知在线状态汇总
-* 感知健康状态发布
-
-### 7.3.3 边界
-
-* 不负责 SLAM 算法
-* 不负责导航
-* 不负责任务调度
-* 只负责感知接入和感知侧基础管理
-
-> 说明：Mid360 内置 IMU 在软件架构中作为正式主路径直接归属于该包组织的驱动链路。D435 在迭代一中只流向记录和可视化相关链路，不作为定位正式输入。
-
----
-
-## 7.4 p0_base_bridge
-
-### 7.4.1 作用
-
-把 STM32 抽象为 ROS2 世界中的标准底盘接口。
-
-### 7.4.2 主要职责
-
-* 串口通信管理
-* 控制指令下发
-* 底盘状态接收
-* 底盘状态解析
-* 里程计相关基础量输出
-* 底层异常状态输出
-* 协议帧约定:协议帧头中预留 1 字节版本号字段（初始值 0x01）。p0_base_bridge 节点启动时，通过握手帧与 STM32 进行版本校验。若版本不匹配，节点拒绝进入自主模式，发布告警至 /system/diagnostics，并在 system_manager 中显示提示。
-### 7.4.3 边界
-
-* 不负责导航决策
-* 不负责任务管理
-* 不负责底层 PID
-* 不负责直接控制硬件驱动板
-  这些都在 STM32 固件侧。
-
----
-
-## 7.5 p0_localization
-
-### 7.5.1 作用
-
-承载定位功能。
-
-### 7.5.2 主要职责
-
-* 运行定位模式
-* 输出位姿状态
-* 输出定位健康状态
-* 支撑重定位
-* 与地图管理协同加载运行地图
-* p0_localization 负责发布 /localization/status 话题（类型 LocalizationStatus.msg），包含定位质量等级（Good/Degraded/Lost）。判定逻辑基于 FAST-LIO2 内部状态（如协方差、匹配点数等），由 localization 内部完成。
-
-### 7.5.3 输入
-
-* Mid360 点云
-* Mid360 IMU
-* 底盘桥接提供的里程相关基础反馈（迭代一为辅助输入/独立状态，正式融合增强主要在迭代二）
-
-### 7.5.4 边界
-
-* 不负责建图保存
-* 不负责地图版本管理
-* 不负责导航调度
-
----
-
-## 7.6 p0_mapping
-
-### 7.6.1 作用
-
-承载建图功能。
-
-### 7.6.2 主要职责
-
-* 运行建图模式
-* 输出建图状态
-* 输出实时建图结果
-* 与地图管理包协同触发地图保存
-
-### 7.6.3 边界
-
-* 不负责地图文件管理
-* 不负责定位运行
-* 不负责导航
-
----
-
-## 7.7 p0_map_manager
-
-### 7.7.1 作用
-
-统一管理地图与语义位置表等静态空间资源。
-
-### 7.7.2 主要职责
-
-* 地图保存
-* 地图加载
-* 地图版本区分
-* 当前运行地图状态维护
-* 语义位置表加载
-* 语义位置查询服务
-* p0_map_manager 是语义位置表（semantic_locations.yaml）的唯一数据持有者与持久化管理者，负责语义位置表的加载、保存、增删改查。对外通过 service 接口（如 GetSemanticPose.srv、SetSemanticPose.srv）提供访问。
-
-### 7.7.3 边界
-
-* 不负责 SLAM 算法
-* 不负责导航执行
-* 不负责语义解析本身
-  只负责“空间静态资源管理”。
-
----
-
-## 7.8 p0_navigation
-
-### 7.8.1 作用
-
-承载行动规划层的软件实现组织。
-
-### 7.8.2 主要职责
-
-* 导航目标管理
-* 调用 Nav2 行动链路
-* 监控导航状态
-* 输出导航结果
-* 导航异常处理
-* 与底盘桥接包联动输出底盘控制意图
-
-### 7.8.3 边界
-
-* 不负责语义目标解析
-* 不负责任务生命周期
-* 不负责安全仲裁
-* 不直接管理地图文件
-
----
-
-## 7.9 p0_semantic_nav
-
-### 7.9.1 作用
-
-承载语义导航成立所需的上层转换逻辑。
-
-### 7.9.2 主要职责
-
-* 接收语义输入
-* 调用语义位置表查询
-* 将语义目标转换为导航目标
-* 输出转换结果与失败原因
-* p0_semantic_nav 通过调用 p0_map_manager 提供的 service 接口查询语义位置，自身不直接读写语义位置表文件。
-
-### 7.9.3 边界
-
-* 不负责具体导航执行
-* 不负责任务总调度
-* 不负责地图存取实现
-
----
-
-## 7.10 p0_task_manager
-
-### 7.10.1 作用
-
-组织任务生命周期和模式协调。
-
-### 7.10.2 主要职责
-
-* 任务接收
-* 任务状态流转
-* 导航任务提交
-* 导航结果接收
-* 任务成功 / 失败 / 中止处理
-* 手动 / 自主 / 建图 / 急停模式协调
-* p0_task_manager 可向 p0_system_manager 发送模式切换请求（如请求进入语义任务模式），但自身不持有模式状态的仲裁权。
-
-### 7.10.3 边界
-
-* 不负责路径规划
-* 不负责传感器驱动
-* 不负责底盘桥接
-* 不直接做安全检测，只响应安全结果
-
----
-
-## 7.11 p0_safety_manager
-
-### 7.11.1 作用
-
-承载软件层安全保障链路。
-
-### 7.11.2 主要职责
-
-* 感知异常监测
-* 定位异常监测
-* 导航异常监测
-* 底盘状态异常监测
-* 风险区域约束状态接入
-* 软件急停触发
-* 停车/中止/保护模式切换请求
-* p0_safety_manager 订阅 /localization/status，对 Degraded 发出系统警告，对 Lost 触发停车保护。safety_manager 不自行判定定位质量，只对 localization 发布的质量等级做处置决策。
-
-### 7.11.3 边界
-
-* 不直接代替 STM32 的底层保护
-* 不直接生成导航路径
-* 不负责系统启动组织
-
-> 硬件急停为纯硬件链路，不属于 ROS2 软件链路；软件架构只承接“软件急停”和“安全监测后下发停车意图”的部分。
-
-### 7.11.4 特殊权限
-
-* p0_safety_manager 在检测到安全事件时，可通过 p0_system_manager 的急停接口强制切换至急停模式。此路径具有最高优先级，system_manager 必须无条件执行。
-
----
-
-## 7.12 p0_system_manager
-
-### 7.12.1 作用
-
-承载系统管理链路。
-
-### 7.12.2 主要职责
-
-* 模式管理状态汇总
-* 启停流程协调
-* 自检
-* 系统状态聚合
-* 关键模块在线状态汇总
-* 运行准入判断
-* 运行监控输出
-* p0_system_manager 是系统运行模式（手动/建图/定位导航/语义任务/急停）的唯一事实源（Single Source of Truth）。所有模式切换请求必须经过 system_manager 仲裁后生效。
-
-### 7.12.3 边界
-
-* 不做任务细节执行
-* 不做导航执行
-* 不做底盘硬实时控制
-
----
-
-## 7.13 p0_data_tools
-
-### 7.13.1 作用
-
-承载数据记录、事件留痕、回放辅助、复盘支撑。
-
-### 7.13.2 主要职责
-
-* bag 录制组织
-* 事件记录
-* 关键运行阶段打点
-* 复盘辅助脚本组织
-* 日志整理辅助
-
-### 7.13.3 边界
-
-* 不侵入主业务逻辑
-* 不承担系统控制权
-* 以旁路支撑方式存在
-
-### 7.13.4 录制 profile 定义
-
-* p0_data_tools 支持两级录制 profile，通过 launch 参数选择：
-
-* 标准 profile（默认，每次运行必录）：
-/cmd_vel, /odom, /tf, /tf_static, /localization/pose, /localization/status, /navigation/status, /safety/*, /system/status, /task/status
-
-* 完整 profile（实验数据采集时显式选择）：
-标准 profile + /livox/lidar, /camera/depth/*, /camera/color/image_raw
-
-* 估算：标准 profile 约 10 分钟 < 100MB；完整 profile 约 10 分钟 2-5GB，需确认 Orin NX 存储余量后使用。
----
-
-## 8. 包依赖关系总览
-
-软件包依赖应尽量保持单向、清晰、可替换。
-
-推荐依赖方向如下：
-
-```text
-p0_interfaces
-   ↑
-   ├── p0_base_bridge
-   ├── p0_sensor_drivers
-   ├── p0_localization
-   ├── p0_mapping
-   ├── p0_map_manager
-   ├── p0_navigation
-   ├── p0_semantic_nav
-   ├── p0_task_manager
-   ├── p0_safety_manager
-   ├── p0_system_manager
-   └── p0_data_tools
-
-p0_sensor_drivers ──→ p0_localization / p0_mapping / p0_safety_manager / p0_data_tools
-p0_base_bridge ────→ p0_localization / p0_navigation / p0_safety_manager / p0_system_manager / p0_data_tools
-p0_map_manager ────→ p0_localization / p0_mapping / p0_navigation / p0_semantic_nav
-p0_localization ───→ p0_navigation / p0_safety_manager / p0_system_manager / p0_data_tools
-p0_mapping ────────→ p0_map_manager / p0_system_manager / p0_data_tools
-p0_semantic_nav ───→ p0_task_manager / p0_navigation
-p0_navigation ─────→ p0_task_manager / p0_safety_manager / p0_data_tools
-p0_safety_manager ─→ p0_system_manager（仅通过急停接口）
-p0_task_manager ─→ 订阅 p0_safety_manager 的安全事件话题
-p0_system_manager ─→ p0_bringup（通过模式组织，不是代码反向依赖）
+├── firmware/
+├── src/
+├── config/
+├── scripts/
+├── data/
+├── experiments/
+├── simulation/
+├── reports/
+├── presentation/
+├── process/
+├── README.md
+├── CHANGELOG.md
+└── .gitignore
 ```
 
----
+其中与软件架构直接相关的核心目录含义为：
 
-## 9. 接口定义总原则
+* src/：ROS2 所有功能包，按职责拆包；
+* config/：全局参数 YAML / Lua，与 launch 配合；
+* scripts/：环境初始化、启动、关闭、自检、数据录制与分析脚本；
+* data/：rosbag、地图文件、日志、标定数据等运行数据，大文件不入 Git；
+* docs/：架构、设计、部署、标定、测试等非代码文档；
 
-接口层面采用：
+----------------------------------------
 
-* **话题**：持续数据流、状态流、广播型信息
-* **服务**：快速请求-响应型操作
-* **动作**：有执行过程、有反馈、有成功/失败结果的长任务
+# 7. 软件包划分总览
 
-### 9.1 话题适用场景
+项目0软件架构采用“统一接口包 + 启动组织包 + 主链路功能包 + 辅助链路功能包 + 第三方依赖”的结构。
 
-* 传感器数据
-* 位姿数据
-* 底盘状态
-* 系统状态
-* 安全状态
-* 任务状态广播
+建议的核心软件包如下：
 
-### 9.2 服务适用场景
+* p0_interfaces：统一定义项目内部自定义消息、服务、动作接口；
+* p0_bringup：统一组织模式化启动，不承载业务逻辑；
+* p0_sensor_drivers：统一承接 Mid360、D435 等传感器接入；
+* p0_base_bridge：统一承接 ROS2 与 STM32 底盘控制板之间的桥接；
+* p0_mapping：承接建图能力；
+* p0_localization：承接定位能力；
+* p0_map_manager：承接地图加载、保存、语义位置表管理与空间语义查询；
+* p0_navigation：承接目标导航、路径执行与导航状态反馈；
+* p0_semantic_nav：承接语义目标解析与导航目标生成；
+* p0_task_manager：承接任务生命周期管理与多步骤任务组织；
+* p0_safety_manager：承接安全监测、异常处置仲裁与安全状态输出；
+* p0_system_manager：承接模式管理、状态聚合、运行准入与系统级协调；
+* p0_data_tools：承接记录、打点、回放辅助与实验支撑；
+----------------------------------------
 
-* 切换模式
-* 保存地图
-* 加载地图
-* 查询语义位置
-* 触发自检
+# 8. 总架构到软件包的映射关系
 
-### 9.3 动作适用场景
+本文档不是对系统总架构的重新定义，而是将总架构骨架落实为软件包组织。
 
-* 语义导航任务
-* 点位导航任务
-* 长时任务执行过程反馈
+显式映射关系如下：
 
----
+| 总架构层 / 链路 | 对应软件包 |
+| --- | --- |
+| 执行层 | p0_base_bridge |
+| 感知层 | p0_sensor_drivers |
+| 空间认知层 | p0_localization、p0_mapping、p0_map_manager |
+| 行动规划层 | p0_navigation |
+| 任务决策层 | p0_semantic_nav、p0_task_manager |
+| 安全保障链路 | p0_safety_manager |
+| 系统管理链路 | p0_system_manager、p0_bringup |
+| 数据记录与复盘链路 | p0_data_tools |
+| 统一接口支撑 | p0_interfaces |
 
-## 10. 话题接口定义（建议版）
+该映射关系体现了以下原则：
 
-以下为可直接进入项目总文件夹的软件架构级接口定义建议。
-命名采用统一前缀 `/p0/...`，后续实现时可按此落地。
+* 软件层必须忠实承接五层主链路与三条辅助链路；
+* 安全、系统管理、数据记录是长期并存的支撑骨架，不是后期补丁；
+* 执行层在软件上并不直接承载为 STM32 ROS2 节点，而是通过 p0_base_bridge 完成跨层桥接；
+* 统一接口必须独立成包，以避免跨包重复定义和接口失控。
 
----
+----------------------------------------
 
-## 10.1 感知层话题
+# 9. 各软件包职责边界
 
-| 话题名                        | 类型                           | 发布方               | 订阅方                                                       | 作用                |
-| -------------------------- | ---------------------------- | ----------------- | --------------------------------------------------------- | ----------------- |
-| `/p0/sensors/lidar/points` | 标准点云消息                       | p0_sensor_drivers | p0_localization, p0_mapping, p0_navigation, p0_data_tools | Mid360 点云主输入      |
-| `/p0/sensors/imu/data`     | 标准 IMU 消息                    | p0_sensor_drivers | p0_localization, p0_mapping, p0_data_tools                | Mid360 内置 IMU 主输入 |
-| `/p0/sensors/camera/color` | 标准图像消息                       | p0_sensor_drivers | p0_data_tools                                             | D435 RGB 输入       |
-| `/p0/sensors/camera/depth` | 标准图像/深度消息                    | p0_sensor_drivers | p0_data_tools                                             | D435 深度输入         |
-| `/p0/sensors/status`       | `p0_interfaces/SensorStatus` | p0_sensor_drivers | p0_safety_manager, p0_system_manager, p0_data_tools       | 感知健康状态            |
+## 9.1 p0_interfaces
 
-> 说明：迭代一阶段，D435 话题正式流向记录与调试链路；迭代二可再增加其流向定位/增强链路。
+作用：统一定义项目0内部跨包通用的自定义 msg / srv / action，避免各包私自定义重复数据结构。
 
----
+边界：本包只负责接口定义，不承载业务逻辑，不承载状态机，不承载具体处理算法。
 
-## 10.2 底盘与执行层话题
+## 9.2 p0_bringup
 
-| 话题名                      | 类型                            | 发布方                                      | 订阅方                                                 | 作用         |
-| ------------------------ | ----------------------------- | ---------------------------------------- | --------------------------------------------------- | ---------- |
-| `/p0/base/cmd_vel`       | 标准速度指令                        | p0_navigation, p0_safety_manager（在保护场景下） | p0_base_bridge                                      | 上层底盘控制意图   |
-| `/p0/base/odom`          | 标准里程计消息                       | p0_base_bridge                           | p0_localization, p0_navigation, p0_data_tools       | 底盘里程相关基础反馈 |
-| `/p0/base/state`         | `p0_interfaces/BaseState`     | p0_base_bridge                           | p0_safety_manager, p0_system_manager, p0_data_tools | 底盘状态与异常状态  |
-| `/p0/base/mode_feedback` | `p0_interfaces/BaseModeState` | p0_base_bridge                           | p0_task_manager, p0_system_manager                  | 底盘当前执行模式反馈 |
+作用：统一组织系统启动入口、运行模式入口与组合启动方式，不承载业务逻辑。
 
----
+边界：本包只负责启动编排，不负责导航算法、安全判断、任务决策与数据处理。
 
-## 10.3 空间认知层话题
+## 9.3 p0_sensor_drivers
 
-| 话题名                       | 类型                                 | 发布方             | 订阅方                                                                | 作用       |
-| ------------------------- | ---------------------------------- | --------------- | ------------------------------------------------------------------ | -------- |
-| `/p0/localization/pose`   | 标准位姿消息                             | p0_localization | p0_navigation, p0_safety_manager, p0_system_manager, p0_data_tools | 当前定位结果   |
-| `/p0/localization/status` | `p0_interfaces/LocalizationStatus` | p0_localization | p0_safety_manager, p0_system_manager, p0_data_tools                | 定位健康状态   |
-| `/p0/mapping/status`      | `p0_interfaces/MappingStatus`      | p0_mapping      | p0_system_manager, p0_data_tools                                   | 建图状态     |
-| `/p0/map/current_info`    | `p0_interfaces/MapInfo`            | p0_map_manager  | p0_localization, p0_navigation, p0_system_manager                  | 当前运行地图信息 |
+作用：统一承接激光雷达、深度相机等传感器接入，并向上提供标准化感知数据流。
 
----
+边界：本包负责“接入与转发”，不承担地图管理、导航决策与任务理解。
 
-## 10.4 导航层话题
+## 9.4 p0_base_bridge
 
-| 话题名                     | 类型                               | 发布方                              | 订阅方                                                                  | 作用             |
-| ----------------------- | -------------------------------- | -------------------------------- | -------------------------------------------------------------------- | -------------- |
-| `/p0/navigation/goal`   | 标准位姿目标或自定义目标                     | p0_semantic_nav, p0_task_manager | p0_navigation                                                        | 导航目标输入         |
-| `/p0/navigation/status` | `p0_interfaces/NavigationStatus` | p0_navigation                    | p0_task_manager, p0_safety_manager, p0_system_manager, p0_data_tools | 导航执行状态         |
-| `/p0/navigation/path`   | 标准路径消息                           | p0_navigation                    | p0_data_tools, 调试工具                                                  | 当前规划路径         |
-| `/p0/navigation/event`  | `p0_interfaces/NavigationEvent`  | p0_navigation                    | p0_task_manager, p0_safety_manager, p0_data_tools                    | 导航异常、重规划、到达等事件 |
+作用：统一承接 ROS2 世界与 STM32 固件世界之间的控制指令下发、状态回传、通信状态监测与桥接转换。
 
----
+边界：本包只处理“底盘控制与反馈桥接”，不应越级承担任务、语义与导航理解逻辑。
 
-## 10.5 任务与语义层话题
+## 9.5 p0_mapping
 
-| 话题名                   | 类型                             | 发布方              | 订阅方                              | 作用              |
-| --------------------- | ------------------------------ | ---------------- | -------------------------------- | --------------- |
-| `/p0/semantic/input`  | `p0_interfaces/SemanticGoal`   | 外部输入适配节点 / 上层调用方 | p0_semantic_nav                  | 语义目标输入          |
-| `/p0/semantic/result` | `p0_interfaces/SemanticResult` | p0_semantic_nav  | p0_task_manager, p0_data_tools   | 语义解析结果          |
-| `/p0/task/state`      | `p0_interfaces/TaskState`      | p0_task_manager  | p0_system_manager, p0_data_tools | 任务生命周期状态        |
-| `/p0/task/event`      | `p0_interfaces/TaskEvent`      | p0_task_manager  | p0_system_manager, p0_data_tools | 任务开始/结束/失败/中止事件 |
+作用：承接建图模式下的地图生成与相关状态输出。
 
----
+边界：本包只负责建图，不承担语义位置解释、任务管理与系统模式仲裁。
 
-## 10.6 安全与系统管理层话题
+## 9.6 p0_localization
 
-| 话题名                            | 类型                              | 发布方               | 订阅方                                               | 作用        |
-| ------------------------------ | ------------------------------- | ----------------- | ------------------------------------------------- | --------- |
-| `/p0/safety/state`             | `p0_interfaces/SafetyState`     | p0_safety_manager | p0_task_manager, p0_system_manager, p0_data_tools | 当前安全状态    |
-| `/p0/safety/stop_cmd`          | `p0_interfaces/SafetyCommand`   | p0_safety_manager | p0_base_bridge, p0_task_manager                   | 软件急停/保护控制 |
-| `/p0/system/state`             | `p0_interfaces/SystemState`     | p0_system_manager | 全系统、p0_data_tools                                 | 系统总状态     |
-| `/p0/system/mode`              | `p0_interfaces/SystemModeState` | p0_system_manager | 全系统                                               | 当前系统模式    |
-| `/p0/system/self_check_result` | `p0_interfaces/SelfCheckResult` | p0_system_manager | p0_data_tools                                     | 自检结果      |
+作用：承接加载既有地图后的定位能力输出，为导航提供当前位置与定位质量信息。
 
----
+边界：本包负责“我在哪”，不负责“我要去哪”与“任务是否结束”。
 
-## 11. 服务接口定义（建议版）
+## 9.7 p0_map_manager
 
----
+作用：承接地图文件的加载、保存、切换、元数据管理，以及语义位置表与语义空间映射数据的统一管理。
 
-## 11.1 地图管理服务
+边界：本包负责“地图与语义空间数据的管理”，不直接承担语义输入解析与任务决策。
 
-| 服务名                           | 类型                                | 服务方            | 调用方                                | 作用           |
-| ----------------------------- | --------------------------------- | -------------- | ---------------------------------- | ------------ |
-| `/p0/map/save`                | `p0_interfaces/SaveMap`           | p0_map_manager | p0_mapping, p0_system_manager      | 保存当前地图       |
-| `/p0/map/load`                | `p0_interfaces/LoadMap`           | p0_map_manager | p0_localization, p0_system_manager | 加载指定地图       |
-| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | p0_map_manager | p0_semantic_nav                    | 查询语义位置对应空间目标 |
+## 9.8 p0_navigation
 
----
+作用：承接导航目标执行、路径跟踪、局部避障与导航状态反馈。
 
-## 11.2 系统管理服务
+边界：本包负责“如何走到目标点”，不负责“目标是否成立”与“任务是否结束”。
 
-| 服务名                      | 类型                            | 服务方               | 调用方                   | 作用        |
-| ------------------------ | ----------------------------- | ----------------- | --------------------- | --------- |
-| `/p0/system/set_mode`    | `p0_interfaces/SetSystemMode` | p0_system_manager | p0_task_manager, 运维入口 | 切换系统模式    |
-| `/p0/system/self_check`  | `p0_interfaces/RunSelfCheck`  | p0_system_manager | 运维入口、p0_bringup       | 触发自检      |
-| `/p0/system/reset_fault` | `p0_interfaces/ResetFault`    | p0_system_manager | 运维入口                  | 清除可恢复故障状态 |
+## 9.9 p0_semantic_nav
 
----
+作用：承接语义输入解析，并将语义目标转换为可执行的导航目标。
 
-## 11.3 底盘桥接服务
+边界：本包负责“理解语义并转目标”，不负责底层路径执行，不负责维护整条任务生命周期。
 
-| 服务名                         | 类型                          | 服务方            | 调用方                                | 作用        |
-| --------------------------- | --------------------------- | -------------- | ---------------------------------- | --------- |
-| `/p0/base/reset_bridge`     | `p0_interfaces/ResetBridge` | p0_base_bridge | p0_system_manager                  | 重新初始化底盘桥接 |
-| `/p0/base/set_control_mode` | `p0_interfaces/SetBaseMode` | p0_base_bridge | p0_task_manager, p0_system_manager | 切换底盘控制模式  |
+## 9.10 p0_task_manager
 
----
+作用：承接任务生命周期管理、多步骤任务组织、任务状态维护与与导航执行结果的衔接。
 
-## 12. 动作接口定义（建议版）
+边界：本包负责“任务是否成立、任务是否结束、是否进入下一步”，不负责底层导航算法实现。
 
----
+## 9.11 p0_safety_manager
 
-## 12.1 导航动作
+作用：集中承担安全监测、异常事件聚合、安全判断与安全处置仲裁。
 
-| 动作名                               | 类型            | 服务方           | 调用方             | 作用       |
-| --------------------------------- | ------------- | ------------- | --------------- | -------- |
-| `/p0/navigation/go_to_pose`       | 标准导航动作或封装动作   | p0_navigation | p0_task_manager | 执行点位导航   |
-| `/p0/navigation/follow_waypoints` | 标准多点导航动作或封装动作 | p0_navigation | p0_task_manager | 执行多目标点导航 |
+边界：可以允许局部包输出自身状态，但真正的安全判断与处置仲裁必须由本包集中承担，不能把安全检测散落到所有包里各自处理，否则会出现多处急停逻辑打架。
 
----
+## 9.12 p0_system_manager
 
-## 12.2 语义导航动作
+作用：集中承担系统模式管理、运行准入、模块状态聚合、故障等级汇总与系统级协调。
 
-| 动作名                        | 类型                          | 服务方             | 调用方           | 作用                |
-| -------------------------- | --------------------------- | --------------- | ------------- | ----------------- |
-| `/p0/semantic_nav/execute` | `p0_interfaces/SemanticNav` | p0_task_manager | 上层任务入口/人工触发入口 | 执行从语义输入到导航完成的完整链路 |
+边界：本包负责“系统是否允许进入某种模式、当前系统整体状态如何”，不替代任务管理与安全管理的专属职责。
 
----
+## 9.13 p0_data_tools
 
-## 13. 数据流设计
+作用：承接 rosbag 录制、日志组织、关键状态打点、数据导出与回放辅助支撑。
 
----
+边界：记录链路应是伴随式支撑，不能侵入主业务决策，也不能把业务决策建立在记录链路之上，否则后期调试和发布版本会高度耦合。
 
-## 13.1 主感知数据流
+----------------------------------------
+
+# 10. 主链路的软件组织
+
+项目0软件主链路按“感知输入 → 空间认知 → 行动规划 → 任务决策 → 底盘控制”组织。
+在软件包层面，可表达为：
 
 ```text
-Mid360 → p0_sensor_drivers → /p0/sensors/lidar/points → p0_localization / p0_mapping / p0_navigation
-Mid360 IMU → p0_sensor_drivers → /p0/sensors/imu/data → p0_localization / p0_mapping
-D435 → p0_sensor_drivers → /p0/sensors/camera/color, /p0/sensors/camera/depth → p0_data_tools
+p0_sensor_drivers
+        ↓
+p0_mapping / p0_localization / p0_map_manager
+        ↓
+p0_navigation
+        ↓
+p0_semantic_nav / p0_task_manager
+        ↓
+p0_base_bridge
+        ↓
+STM32 firmware
 ```
 
----
-
-## 13.2 底盘反馈数据流
+但从职责顺序上更准确的理解应为：
 
 ```text
-STM32 → p0_base_bridge → /p0/base/odom, /p0/base/state → 
-p0_localization / p0_navigation / p0_safety_manager / p0_system_manager / p0_data_tools
+感知输入
+→ 空间认知成立（建图 / 定位 / 地图管理）
+→ 任务决策给出导航目标
+→ 行动规划执行导航
+→ 底盘控制执行运动
 ```
 
----
+原因在于：任务决策层逻辑上位于行动规划层之上，语义导航和任务管理负责产生或组织目标，导航负责执行该目标，底盘桥接负责把执行结果落到 STM32 与底盘执行世界。
 
-## 13.3 空间认知数据流
-
-```text
-p0_localization → /p0/localization/pose, /p0/localization/status →
-p0_navigation / p0_safety_manager / p0_system_manager / p0_data_tools
-
-p0_mapping → /p0/mapping/status → p0_system_manager / p0_data_tools
-p0_map_manager → /p0/map/current_info → p0_localization / p0_navigation / p0_system_manager
-```
-
----
-
-## 13.4 任务与导航数据流
+因此，项目0软件主链路在职责视角下应表述为：
 
 ```text
-/p0/semantic/input → p0_semantic_nav → /p0/navigation/goal → p0_navigation
-p0_navigation → /p0/navigation/status, /p0/navigation/event → p0_task_manager
-p0_task_manager → /p0/task/state, /p0/task/event → p0_system_manager / p0_data_tools
-```
-
----
-
-## 13.5 安全与管理数据流
-
-```text
-感知状态 / 定位状态 / 导航状态 / 底盘状态 → p0_safety_manager → /p0/safety/state, /p0/safety/stop_cmd
-全系统关键状态 → p0_system_manager → /p0/system/state, /p0/system/mode
-```
-
----
-
-## 14. 控制流设计
-
----
-
-## 14.1 自主任务控制流
-
-```text
-语义输入
-→ p0_semantic_nav
-→ p0_task_manager
+p0_sensor_drivers
+→ p0_mapping / p0_localization / p0_map_manager
+→ p0_semantic_nav / p0_task_manager
 → p0_navigation
-→ /p0/base/cmd_vel
 → p0_base_bridge
 → STM32
-→ 电机驱动/底盘执行
 ```
 
----
+该主链路支撑的不是抽象演示，而是面向真实走廊场景的真机闭环平台能力。
 
-## 14.2 软件急停控制流
+----------------------------------------
+
+# 11. 辅助链路的软件组织
+
+项目0软件辅助链路按“安全、管理、记录”三条长期并存的骨架组织。
+
+## 11.1 安全保障链路
+
+安全保障链路的核心软件包是 p0_safety_manager。
+
+它持续接收来自感知、底盘、定位、导航、系统等环节的状态或事件输入，进行统一安全判断与安全处置仲裁，并在必要时要求系统减速、停车、保持或进入安全模式。
+
+该链路之所以必须独立，是因为项目0明确面向包含楼梯口、天井边缘、电梯口等高风险环境区域的真实场景，安全底线能力不能作为可选附加项存在。
+
+## 11.2 系统管理链路
+
+系统管理链路的核心软件包是 p0_system_manager 与 p0_bringup。
+
+其中：
+
+* p0_bringup 负责把系统以某种模式组织起来；
+* p0_system_manager 负责模式切换、状态聚合、运行准入与系统级协调。
+
+该链路的意义在于，项目0迭代一不仅要“能跑”，还要形成一个可解释、可管理、可复盘的类产品级平台。
+
+## 11.3 数据记录与复盘链路
+
+数据记录链路的核心软件包是 p0_data_tools。
+
+它不直接决定主业务动作，但持续为以下事项提供支撑：
+
+* rosbag 记录；
+* 结构化日志留痕；
+* 关键状态打点；
+* 回放辅助；
+* 对比实验支撑。
+
+该链路之所以必须长期保留，是因为项目0整体成果中明确要求实验日志、问题日志、测试记录、版本快照、复盘记录与可解释过程沉淀，而不是只形成一个“碰巧能跑”的系统。
+
+----------------------------------------
+
+# 12. 架构级接口组织原则
+
+软件架构文档需要定义“接口如何组织”，但不需要在本阶段把字段级定义全部写死。
+
+因此，本文档只定义接口组织原则与架构级接口关系，具体字段与名称由 interface_definition.md 承接。
+
+## 12.1 接口分层原则
+
+项目0内部接口分为三类：
+
+* 数据型接口：主要由 topic 承担，用于持续传输传感器数据、底盘状态、定位结果、导航状态、系统状态等；
+* 请求响应型接口：主要由 service 承担，用于模式切换、地图保存加载、语义位置查询、急停触发等；
+* 长时任务型接口：主要由 action 承担，用于导航执行、语义导航任务等存在过程反馈与结果返回的任务。
+
+## 12.2 接口统一归口原则
+
+凡是跨包通用、且标准消息无法直接表达的结构，统一收口到 p0_interfaces 中定义。
+
+典型结构包括：
+
+* 底盘控制与状态结构；
+* 系统状态结构；
+* 安全事件结构；
+* 定位质量结构；
+* 语义目标结构；
+* 任务状态结构。
+
+## 12.3 接口边界原则
+
+接口应服务于分层解耦，而不能破坏分层。典型约束包括：
+
+* p0_base_bridge 不直接理解语义任务；
+* p0_semantic_nav 不直接管理地图文件；
+* p0_task_manager 不直接承担底层路径规划；
+* p0_safety_manager 集中承担安全仲裁；
+* p0_data_tools 不反向控制主业务逻辑。
+
+----------------------------------------
+
+# 13. 架构级接口关系总览
+
+以下仅给出架构级接口关系，用于回答“各包之间通过哪些话题 / 服务 / 动作接口交互”。具体接口名与字段由 interface_definition.md 继续展开。
+
+## 13.1 感知与空间认知接口
+
+* p0_sensor_drivers 通过数据型接口向 p0_mapping 输出建图所需传感器数据；
+* p0_sensor_drivers 通过数据型接口向 p0_localization 输出定位所需传感器数据；
+* p0_sensor_drivers 通过数据型接口向 p0_safety_manager 输出安全感知相关输入；
+* p0_mapping 通过请求响应型接口与 p0_map_manager 协作完成地图保存；
+* p0_map_manager 通过请求响应型接口向 p0_localization 提供地图加载相关资源；
+
+## 13.2 底盘控制与反馈接口
+
+* p0_navigation 通过数据型接口向 p0_base_bridge 输出底盘运动控制指令；
+* p0_base_bridge 通过数据型接口向 p0_navigation、p0_localization、p0_system_manager 输出底盘反馈与运动状态；
+* p0_base_bridge 通过数据型接口向 p0_safety_manager 输出底盘状态与通信状态；
+
+## 13.3 语义导航与任务接口
+
+* p0_semantic_nav 通过请求响应型接口调用 p0_map_manager 的语义位置查询能力，获得目标位姿或区域信息；
+* p0_semantic_nav 将语义目标转换结果发送给 p0_navigation，或交由 p0_task_manager 组织执行；
+* p0_task_manager 通过长时任务型接口发起导航任务，由 p0_navigation 执行并持续反馈状态；
+* p0_task_manager 根据导航反馈维护任务生命周期。
+
+## 13.4 系统与安全接口
+
+* p0_system_manager 通过请求响应型接口接收模式切换请求，并向 p0_task_manager、p0_navigation、p0_base_bridge、p0_safety_manager 广播当前模式或准入结果；
+* p0_safety_manager 接收多源状态与事件输入，并在必要时向 p0_navigation、p0_base_bridge、p0_system_manager 发出安全处置请求或安全状态输出；
+
+## 13.5 记录与复盘接口
+
+* p0_data_tools 订阅主链路与辅助链路中的关键数据流、状态流与事件流；
+* p0_data_tools 通过非侵入方式记录 rosbag、日志与关键打点信息；
+* p0_data_tools 不作为主业务执行的前置依赖。
+
+----------------------------------------
+
+# 14. 数据流、控制流与状态流设计
+
+## 14.1 数据流设计
+
+项目0软件架构中的数据流主要回答“信息如何在主链路中流动”。其基本方向为：
 
 ```text
-异常检测
-→ p0_safety_manager
-→ /p0/safety/stop_cmd
-→ p0_base_bridge
-→ STM32
-→ 底盘停车
+传感器数据
+→ 感知接入
+→ 建图 / 定位 / 地图管理
+→ 语义目标解析 / 任务组织
+→ 导航执行
+→ 底盘控制
+→ 底盘反馈回流
 ```
 
----
+这一定义保证系统形成闭环，而不是单向演示链路。
 
-## 14.3 模式切换控制流
+## 14.2 控制流设计
 
-```text
-模式切换请求
-→ p0_system_manager
-→ /p0/system/mode
-→ p0_task_manager / p0_navigation / p0_base_bridge / p0_safety_manager
-```
+项目0软件架构中的控制流主要回答“谁对谁发起控制、谁拥有高优先级仲裁权”。其基本原则为：
 
----
+* 任务层可向导航层发起导航控制；
+* 导航层可向底盘桥接层发起运动控制；
+* 系统管理层可进行模式切换与运行准入控制；
+* 安全保障链路拥有比普通任务执行更高的处置优先级，可要求减速、停止或安全模式切换；
 
-## 15. 状态流设计
+换言之，项目0的软件控制优先级不是“谁先发命令谁有效”，而是必须体现“安全高于任务，系统模式高于普通执行”。
 
-项目0软件架构中，状态流必须形成“可观测、可聚合、可记录”的结构。
+## 14.3 状态流设计
 
-### 15.1 局部状态
+项目0软件架构中的状态流必须形成“可观测、可聚合、可记录”的结构。
 
-各核心包分别输出：
+### 14.3.1 局部状态
 
-* 感知状态
-* 底盘状态
-* 定位状态
-* 建图状态
-* 导航状态
-* 任务状态
-* 安全状态
+各核心软件包分别输出本地状态，例如：
 
-### 15.2 聚合状态
+* 感知状态；
+* 底盘状态；
+* 定位状态；
+* 建图状态；
+* 导航状态；
+* 任务状态；
+* 安全状态。
 
-由 `p0_system_manager` 聚合形成：
+### 14.3.2 聚合状态
 
-* 系统总状态
-* 当前系统模式
-* 运行准入结果
-* 故障等级
+由 p0_system_manager 聚合形成：
 
-### 15.3 留痕状态
+* 系统总状态；
+* 当前系统模式；
+* 运行准入结果；
+* 故障等级。
 
-由 `p0_data_tools` 对关键状态进行：
+### 14.3.3 留痕状态
 
-* 记录
-* 打点
-* 回放辅助组织
+由 p0_data_tools 对关键状态进行：
 
----
+* 记录；
+* 打点；
+* 回放辅助组织。
 
-## 16. 模式化启动的软件组织
+----------------------------------------
 
-软件架构必须直接支撑以下模式启动。
+# 15. 模式化启动的软件组织
 
----
+项目0软件架构必须直接支撑模式化启动，因为迭代一并非始终以“全量自主任务模式”运行，而需要在建图、定位运行、调试、安全等多种模式下逐步联调与验收。
 
-## 16.1 建图模式
+## 15.1 建图模式
 
 启动包建议：
 
@@ -915,15 +550,9 @@ p0_task_manager → /p0/task/state, /p0/task/event → p0_system_manager / p0_da
 * p0_safety_manager
 * p0_data_tools
 
-不启动：
+该模式下不启动完整自主导航主链路与完整任务链路。
 
-* p0_navigation 的自主导航主链路
-* p0_semantic_nav
-* p0_task_manager 的完整任务链路
-
----
-
-## 16.2 定位运行模式
+## 15.2 定位运行模式
 
 启动包建议：
 
@@ -935,11 +564,60 @@ p0_task_manager → /p0/task/state, /p0/task/event → p0_system_manager / p0_da
 * p0_safety_manager
 * p0_data_tools
 
----
+该模式用于已存在地图条件下的定位与运行准备。
 
-## 16.3 自主任务模式
+## 15.3 自主导航 / 任务模式
 
-启动包建议：
+启动包建议应在上述基础上进一步加入：
+
+* p0_navigation
+* p0_semantic_nav
+* p0_task_manager
+
+该模式用于迭代一后段的语义导航与任务调度联调。
+
+## 15.4 调试与安全模式
+
+根据具体问题定位，可由 p0_bringup 组织底盘调试、传感器调试、仅安全监测、手动调试等模式化组合启动。
+
+----------------------------------------
+
+# 16. 最小可运行闭环
+
+为了保证项目0遵循“先做成，再做强，再做深”的推进原则，软件架构必须支持按阶段建立最小可运行闭环，而不是要求一开始实现所有包。
+
+## 16.1 最小建图闭环
+
+建议包集合：
+
+* p0_sensor_drivers
+* p0_base_bridge
+* p0_mapping
+* p0_map_manager
+* p0_system_manager
+* p0_safety_manager
+* p0_data_tools
+
+该闭环主要服务 P3 阶段的感知与建图成立。
+
+## 16.2 最小定位导航闭环
+
+建议包集合：
+
+* p0_sensor_drivers
+* p0_base_bridge
+* p0_localization
+* p0_map_manager
+* p0_navigation
+* p0_system_manager
+* p0_safety_manager
+* p0_data_tools
+
+该闭环主要服务 P4 阶段的定位与导航成立。
+
+## 16.3 最小语义任务闭环
+
+建议包集合：
 
 * p0_sensor_drivers
 * p0_base_bridge
@@ -948,478 +626,66 @@ p0_task_manager → /p0/task/state, /p0/task/event → p0_system_manager / p0_da
 * p0_navigation
 * p0_semantic_nav
 * p0_task_manager
-* p0_safety_manager
 * p0_system_manager
+* p0_safety_manager
 * p0_data_tools
 
----
+该闭环主要服务 P5 阶段的语义导航与任务调度成立。
 
-## 16.4 调试模式
+----------------------------------------
 
-根据调试对象裁剪启动：
+# 17. 软件架构与接口定义文档的边界
 
-* 感知调试
-* 底盘桥接调试
-* 定位调试
-* 导航调试
-* 安全管理调试
+根据项目文件结构设计，项目0在 docs/02_architecture/ 下单独保留 interface_definition.md，用于继续展开模块间具体接口定义、自定义消息结构与调用关系。
 
-由 `p0_bringup` 统一组织。
+因此，本文档与 interface_definition.md 的边界应明确如下：
 
----
+* software_architecture.md：回答“为什么这样分包、包之间大概如何交互、主链路和辅助链路如何在软件层面贯通”；
+* interface_definition.md：回答“具体有哪些 topic / service / action，它们的名字、数据类型、发布者、订阅者、调用方、返回结构分别是什么”。
 
-## 17. 软件架构与计算通信架构的映射关系
+这种分工既能避免软件架构文档写成字段级接口手册，也能避免 interface_definition.md 脱离上位架构单独漂浮。
 
-| 计算实体      | 主要软件包/组件                                                                                                                                                                                                                   |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Orin NX   | p0_interfaces, p0_bringup, p0_sensor_drivers, p0_base_bridge, p0_localization, p0_mapping, p0_map_manager, p0_navigation, p0_semantic_nav, p0_task_manager, p0_safety_manager, p0_system_manager, p0_data_tools, 第三方ROS2依赖 |
-| STM32F407 | 独立固件（不属于 ROS2 workspace），通过 p0_base_bridge 与 Orin NX 连接                                                                                                                                                                    |
+----------------------------------------
 
-这与已确定的“ROS2 主业务集中在 Orin NX，STM32 不承担 ROS2 主业务”的计算与通信架构一致。
+# 18. 迭代一到迭代二的软件演进边界
 
----
-
-## 18. 软件架构与系统总架构的映射关系
-
-| 系统总架构模块   | 软件包落位                                         |
-| --------- | --------------------------------------------- |
-| 执行模块      | p0_base_bridge + STM32 固件                     |
-| 感知模块      | p0_sensor_drivers                             |
-| 空间认知模块    | p0_localization + p0_mapping + p0_map_manager |
-| 行动规划模块    | p0_navigation                                 |
-| 任务决策模块    | p0_semantic_nav + p0_task_manager             |
-| 安全保障模块    | p0_safety_manager                             |
-| 系统管理模块    | p0_system_manager + p0_bringup                |
-| 数据记录与复盘模块 | p0_data_tools                                 |
-
-显式映射表如下:
-
-| 总架构层/链路 | 对应软件包 |
-|---|---|
-| 执行层 | p0_base_bridge |
-| 感知层 | p0_sensor_drivers |
-| 空间认知层 | p0_localization, p0_mapping, p0_map_manager |
-| 行动规划层 | p0_navigation |
-| 任务决策层 | p0_semantic_nav, p0_task_manager |
-| 安全保障链路 | p0_safety_manager |
-| 系统管理链路 | p0_system_manager, p0_bringup |
-| 数据记录链路 | p0_data_tools |
-| 统一接口 | p0_interfaces |
-因此，本软件架构是在系统总架构骨架上的**软件层展开**，而不是对总架构的重新定义。
-
----
-
-## 19. 迭代一到迭代二的软件演进边界
-
-### 19.1 迭代一阶段
+## 18.1 迭代一阶段
 
 迭代一软件架构重点是：
 
-* 跑通主链路
-* 建立统一接口骨架
-* 建立安全、管理、记录的基础辅助包
-* 保证地图、语义位置表、任务、模式都能最小成立
+* 跑通主链路；
+* 建立统一接口骨架；
+* 建立安全、管理、记录的基础辅助包；
+* 保证地图、语义位置表、任务、模式都能最小成立。
 
-### 19.2 迭代二阶段
+这与项目0“先形成类产品级平台，再谈增强研究”的总体要求一致。
+
+## 18.2 迭代二阶段
 
 迭代二不推翻软件架构，只做以下增强：
 
-#### （1）感知与空间认知增强
+### （1）感知与空间认知增强
 
-* p0_sensor_drivers 增加对 D435 更深利用
-* p0_localization 增加多传感器融合增强
-* 可能增加回环增强相关子模块（可内聚到 p0_localization，必要时再独立增包）
+* p0_sensor_drivers 增加对 D435 更深入的利用；
+* p0_localization 增加多传感器融合增强；
+* 必要时增加回环增强相关子模块，但不应轻易破坏现有骨架。
 
-#### （2）语义导航增强
+### （2）语义导航增强
 
-* p0_semantic_nav 增强解析能力
-* p0_task_manager 增强任务表达与多轮任务组织能力
+* p0_semantic_nav 增强语义解析能力；
+* p0_task_manager 增强任务表达能力与多轮任务组织能力。
 
-#### （3）数据与实验支撑增强
+### （3）数据与实验支撑增强
 
-* p0_data_tools 增强实验记录与对比实验辅助能力
+* p0_data_tools 增强实验记录、基线对比与结果导出能力；
 
----
+因此，迭代二是在既有架构骨架上的增强，而不是重新换骨架。
 
-## 20. 直接放入项目总文件夹的建议文件名
+----------------------------------------
 
-建议文件名：
-
-```text
-software_architecture.md
-```
-
-建议放置位置：
-
-```text
-项目总文件夹/docs/architecture/software_architecture.md
-```
-
-如果当前总文件夹未细分，也可先放在：
-
-```text
-项目总文件夹/software_architecture.md
-```
-
----
-
-## 21. 最终结论
+# 19. 总结
 
 项目0软件架构可以概括为：
 
-> 项目0采用基于单一主 ROS2 workspace 的软件架构，在 Orin NX 上统一组织感知接入、底盘桥接、定位、建图、地图管理、导航、语义导航、任务管理、安全管理、系统管理与数据记录等软件包，并通过 `p0_interfaces` 统一定义项目内部消息、服务与动作接口。软件主链路按“感知输入 → 空间认知 → 行动规划 → 任务决策 → 底盘控制”组织，辅助链路按“安全监测与处置、系统管理与模式组织、数据记录与复盘支撑”组织；STM32 不运行 ROS2 主业务，仅以独立固件形式通过 `p0_base_bridge` 接入 ROS2 世界。该软件架构既能直接支撑迭代一最小闭环平台成立，也能在不推翻整体结构的前提下承接迭代二的多传感器融合增强、定位建图鲁棒性增强与语义导航深化。 
-
+> 项目0在 Orin NX 上采用单一主 ROS2 workspace 作为软件主承载结构，通过 p0_interfaces 统一定义内部接口，通过 p0_bringup 统一组织模式化启动，通过 p0_sensor_drivers、p0_base_bridge、p0_mapping、p0_localization、p0_map_manager、p0_navigation、p0_semantic_nav、p0_task_manager、p0_safety_manager、p0_system_manager、p0_data_tools 等软件包完成系统主链路与辅助链路的软件展开。软件主链路按“感知输入—空间认知—任务决策—行动规划—底盘控制”组织，辅助链路按“安全、管理、记录”组织，并通过架构级话题、服务、动作接口实现跨包解耦；STM32 不运行 ROS2 主业务，仅以独立固件形式通过 p0_base_bridge 接入 ROS2 世界。该软件架构既能直接支撑迭代一最小闭环平台成立，也能在不推翻整体结构的前提下承接迭代二的多传感器融合增强、定位建图鲁棒性增强与语义导航深化。
 ```
-```
-
-## 24. 关键包之间的调用关系（展开版）
-
-本节在前文“包依赖关系总览”基础上，进一步给出更接近工程实施的调用逻辑。
-
----
-
-### 24.1 p0_semantic_nav 与 p0_map_manager
-
-调用关系：
-- `p0_semantic_nav` 接收语义输入
-- 调用 `p0_map_manager` 的语义查询服务
-- 获得目标位姿或目标区域信息
-- 再将结果转换为导航目标输出
-
-结论：
-- `p0_semantic_nav` 负责“理解语义并转目标”
-- `p0_map_manager` 负责“提供语义-空间映射数据”
-
-二者边界不能混。
-
----
-
-### 24.2 p0_task_manager 与 p0_navigation
-
-调用关系：
-- `p0_task_manager` 根据任务类型发起导航动作
-- `p0_navigation` 负责执行导航并持续反馈状态
-- `p0_task_manager` 根据反馈维护任务生命周期
-
-结论：
-- `p0_task_manager` 负责“任务是否成立、任务是否结束”
-- `p0_navigation` 负责“导航怎么执行”
-
----
-
-### 24.3 p0_safety_manager 与 p0_navigation / p0_base_bridge
-
-调用关系：
-- `p0_safety_manager` 订阅导航状态、定位状态、感知状态、底盘状态
-- 当异常成立时：
-  - 对 `p0_task_manager` 发出任务中止/冻结影响
-  - 对 `p0_base_bridge` 发出停车/保护指令
-
-结论：
-- 安全包不直接接管导航逻辑
-- 但安全包有权中断导航结果继续下发到底盘
-
----
-
-### 24.4 p0_system_manager 与全系统
-
-调用关系：
-- 汇总来自各包的状态
-- 判断系统是否允许进入某一模式
-- 负责系统状态和模式对外统一输出
-- 可通过服务触发自检、故障重置、模式切换
-
-结论：
-- `p0_system_manager` 是系统级运行组织中心
-- 但不是导航中心，也不是任务中心
-
----
-
-### 24.5 p0_data_tools 与全系统
-
-调用关系：
-- 订阅各功能包的关键状态和事件
-- 组织 bag 录制和日志标记
-- 不向主业务链路回写控制指令
-
-结论：
-- `p0_data_tools` 必须全局可观测
-- 但不应拥有控制权
-
----
-
-## 25. 包划分边界的反例说明（防止后续跑偏）
-
-为了便于你后面继续做软件架构审查、接口定义和代码实现，这里专门写出几条**不能这么做**的反例。
-
-### 25.1 不能把语义位置表管理写进 p0_semantic_nav
-原因：
-- 语义位置表本质上属于地图/空间静态资源
-- 它应由 `p0_map_manager` 管理
-- `p0_semantic_nav` 只负责使用，不负责拥有
-
-### 25.2 不能把系统模式管理完全塞进 p0_task_manager
-原因：
-- 任务管理只是一部分业务逻辑
-- 系统模式涉及建图、定位运行、急停、调试、待机等全局状态
-- 这些必须由 `p0_system_manager` 统一管理，`p0_task_manager` 只负责业务侧配合
-
-### 25.3 不能把安全检测散落到所有包里各自处理
-原因：
-- 可以允许局部包输出自身状态
-- 但真正的安全判断与处置仲裁必须由 `p0_safety_manager` 集中承担
-- 否则后续会出现多处急停逻辑打架
-
-### 25.4 不能让 p0_base_bridge 直接理解语义任务
-原因：
-- 底盘桥接包只处理“底盘控制与反馈桥接”
-- 不应越级承担任务、语义、导航理解逻辑
-- 否则会破坏分层
-
-### 25.5 不能让 p0_data_tools 侵入主业务代码
-原因：
-- 记录链路应是伴随式支撑
-- 不能把业务决策建立在记录链路之上
-- 否则后期调试和发布版本会高度耦合
-
----
-
-## 26. 推荐 launch 文件组织结构
-
-虽然 launch 的具体实现属于后续工程层，但软件架构需要给出可落地的目录组织建议，否则总文件夹不够完整。
-
-建议如下：
-
-```text
-launch/
-├── modes/
-│   ├── mapping.launch.py
-│   ├── localization.launch.py
-│   ├── autonomous_task.launch.py
-│   ├── manual_debug.launch.py
-│   └── safe_mode.launch.py
-├── groups/
-│   ├── sensors.launch.py
-│   ├── base_bridge.launch.py
-│   ├── localization.launch.py
-│   ├── mapping.launch.py
-│   ├── navigation.launch.py
-│   ├── task_manager.launch.py
-│   ├── safety_manager.launch.py
-│   ├── system_manager.launch.py
-│   └── data_tools.launch.py
-└── bringup.launch.py
-````
-
-### 26.1 modes 目录
-
-按系统运行模式组织启动入口，适合日常使用和验收。
-
-### 26.2 groups 目录
-
-按功能包或功能组组织启动片段，适合联调和局部调试。
-
-### 26.3 bringup.launch.py
-
-作为统一总入口，根据参数选择不同模式或组合启动。
-
-### 26.4 模式化启动映射表
-
-| 启动模式 | 启动包集合 | 对应 Launch |
-|----------|-----------|-------------|
-| 建图模式 | sensor_drivers, base_bridge, mapping, map_manager, system_manager, safety_manager, data_tools | mapping.launch.py |
-| 定位导航模式 | sensor_drivers, base_bridge, localization, map_manager, navigation, system_manager, safety_manager, data_tools | localization.launch.py |
-| 语义任务模式 | 定位导航模式全部 + semantic_nav, task_manager | autonomous_task.launch.py |
-| 手动调试模式 | sensor_drivers, base_bridge, system_manager, safety_manager, data_tools | manual_debug.launch.py |
-| 安全模式 | base_bridge（仅急停监听）, safety_manager, system_manager | safe_mode.launch.py |
----
-
-
-
-## 27. 配置文件组织结构（建议版）
-
-为了让该文档能直接进入项目总文件夹并服务后续实现，配置文件目录建议也要同步写清。
-
-```text
-config/
-├── sensors/
-│   ├── mid360.yaml
-│   ├── d435.yaml
-│   └── sensor_status_rules.yaml
-├── base/
-│   ├── base_bridge.yaml
-│   ├── base_limits.yaml
-│   └── base_modes.yaml
-├── localization/
-│   ├── fastlio_mapping.yaml
-│   ├── fastlio_localization.yaml
-│   └── localization_rules.yaml
-├── navigation/
-│   ├── nav2_common.yaml
-│   ├── global_planner.yaml
-│   ├── local_planner.yaml
-│   ├── costmap_global.yaml
-│   ├── costmap_local.yaml
-│   └── navigation_rules.yaml
-├── semantic/
-│   ├── semantic_nav.yaml
-│   └── semantic_places.yaml
-├── safety/
-│   ├── safety_rules.yaml
-│   ├── keepout_policy.yaml
-│   └── stop_conditions.yaml
-├── system/
-│   ├── system_modes.yaml
-│   ├── self_check_rules.yaml
-│   └── system_state_rules.yaml
-└── modes/
-    ├── mapping_mode.yaml
-    ├── localization_mode.yaml
-    ├── autonomous_task_mode.yaml
-    └── debug_mode.yaml
-```
-
-### 27.1 配置组织原则
-
-* 驱动配置和业务规则配置分开
-* 共性配置和模式配置分开
-* 尽量不把配置硬编码进 launch
-* 尽量让“模式切换”通过配置切换而不是代码复制
-
----
-
-## 28. 第三方包与自研包的边界
-
-为了避免后续开发中把第三方依赖和自研逻辑揉在一起，这里明确边界。
-
-### 28.1 第三方包
-
-主要负责：
-
-* 提供驱动
-* 提供通用导航能力
-* 提供通用建图/定位能力
-* 提供行为树底层框架能力
-
-这些包包括：
-
-* livox_ros_driver2
-* realsense2_camera
-* FAST-LIO2 ROS2 版本
-* Nav2
-* BehaviorTree.CPP 相关依赖
-
-### 28.2 自研包
-
-主要负责：
-
-* 项目0自身系统组织
-* 任务逻辑
-* 语义导航逻辑
-* 地图资源管理
-* 安全链路组织
-* 系统管理
-* 底盘桥接
-* 数据记录和复盘组织
-
-### 28.3 边界要求
-
-* 不要直接修改第三方包核心代码作为主路径
-* 自研逻辑尽量通过外层封装、接口适配、参数配置、组合启动来实现
-* 只有在确实必要时才对第三方包做最小修改，并且要单独记录
-
----
-
-## 29. 软件架构下的最小可运行闭环
-
-为了保证软件架构不是纯结构化描述，而是能直接指导迭代一落地，这里给出“最小可运行闭环”的软件包集合。
-
-### 29.1 最小建图闭环
-
-* p0_sensor_drivers
-* p0_base_bridge
-* p0_mapping
-* p0_map_manager
-* p0_system_manager
-* p0_safety_manager
-* p0_data_tools
-
-### 29.2 最小定位导航闭环
-
-* p0_sensor_drivers
-* p0_base_bridge
-* p0_localization
-* p0_map_manager
-* p0_navigation
-* p0_system_manager
-* p0_safety_manager
-* p0_data_tools
-
-### 29.3 最小语义任务闭环
-
-* p0_sensor_drivers
-* p0_base_bridge
-* p0_localization
-* p0_map_manager
-* p0_navigation
-* p0_semantic_nav
-* p0_task_manager
-* p0_system_manager
-* p0_safety_manager
-* p0_data_tools
-
-这三个集合分别对应：
-
-* 建图成立
-* 自主导航成立
-* 语义导航与任务调度成立
-
-与项目流程 P3、P4、P5 的推进节奏一致。
-
----
-
-## 30. 软件架构边界结论
-
-为了确保你后续写接口定义、模块实现和联调文档时不跑偏，这里再做一次明确收束。
-
-### 30.1 本文档已经定义的内容
-
-* workspace 如何组织
-* 包如何划分
-* 包之间职责边界是什么
-* 主要话题 / 服务 / 动作接口如何定义
-* 数据流、控制流、状态流如何展开
-* 模式启动如何组织
-* 与系统总架构、计算与通信架构如何映射
-
-### 30.2 本文档故意不定义的内容
-
-* 每个包内部到底有几个节点
-* 每个节点的具体回调逻辑
-* 协议帧字节布局
-* 各接口的字段级消息定义
-* 第三方包参数具体怎么调
-* launch 文件具体 Python 实现
-* rosbag 录制脚本具体写法
-
-这些内容应分别交给：
-
-* 接口定义文档
-* 模块实现设计文档
-* 联调与部署说明
-* 参数配置文档
-
-## 1-2 条典型异常传播路径的文字描述
-
-示例：底盘通信中断
-STM32 通信超时 → p0_base_bridge 检测到 → 发布 ChassisStatus(COMM_LOST) 
-→ p0_safety_manager 订阅 → 触发 TriggerEmergencyStop 
-→ p0_system_manager 执行 → 切换至急停模式 
-→ p0_task_manager 收到模式变更 → 中止当前任务
----
-
-## 31. 最终定稿式总结（补充版）
-
-项目0软件架构最终可以进一步精炼为：
-
-> 项目0在 Orin NX 上采用单一主 ROS2 workspace 作为软件主承载结构，通过 `p0_interfaces` 统一定义内部接口，通过 `p0_bringup` 统一组织模式化启动，通过感知接入、底盘桥接、定位、建图、地图管理、导航、语义导航、任务管理、安全管理、系统管理和数据记录等自研包完成系统主链路与辅助链路的软件展开。软件主链路按“感知输入—空间认知—行动规划—任务决策—底盘控制”组织，辅助链路按“安全、管理、记录”组织，并通过明确的话题、服务、动作接口解耦。该软件架构能够直接支撑迭代一最小闭环成立，同时为迭代二的多传感器融合增强、定位建图鲁棒性增强和语义导航深化提供稳定的软件骨架。
