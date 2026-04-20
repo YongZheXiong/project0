@@ -35,7 +35,7 @@ project0/
 │   │   ├── compute_comm_architecture.md    # 计算与通信架构
 │   │   ├── power_architecture.md           # 电源架构
 │   │   ├── hardware_architecture.md        # 硬件架构
-│   │   ├── software_architecture.md        # 软件架构与数据流
+│   │   ├── software_architecture.md        # 软件架构
 │   │   ├── interface_definition.md         # 接口定义表
 │   │   ├── wiring_diagram.md               # 接线图
 │   │   └── diagrams/                       # 架构图源文件
