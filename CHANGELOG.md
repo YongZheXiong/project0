@@ -9,7 +9,7 @@ All notable changes to Project-0 will be documented in this file.
 
 
 ### Changed
-
+- 重构并重写了software_architecture.md
 
 ### Deprecated
 -
@@ -49,6 +49,8 @@ All notable changes to Project-0 will be documented in this file.
 - 新增了 system_architecture.md
 - 新增了 compute_comm_architecture.md
 - 新增了 software_architecture.md
+
+---
 
 ## [0.2.1] - 2026-4-20
 
