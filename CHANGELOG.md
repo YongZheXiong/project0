@@ -5,11 +5,10 @@ All notable changes to Project-0 will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- 新增了 file_structure_design_proposal.md
-
+- 
 
 ### Changed
-- 重构并重写了software_architecture.md
+- 
 
 ### Deprecated
 -
@@ -62,3 +61,19 @@ All notable changes to Project-0 will be documented in this file.
 
 ### Changed
 - 统一了 决策文件的命名标准
+
+---
+
+## [0.2.2] - 2026-4-21
+
+### Added
+- 新增了 file_structure_design_proposal.md
+- 新增了 interface_definition.md
+- 新增了 ros2_package_topic_service_action.md
+
+### Changed
+- 重构并重写了software_architecture.md
+
+---
+
+## [0.2.3] - 
