@@ -430,11 +430,9 @@ YYYYMMDD_阶段_测试内容.md
 
 | 标签 | 对应阶段 |
 |------|----------|
-| `V0.1` | P0-P1完成 [9] |
-| `V0.2`-`V0.9` | P2-P5各阶段 |
-| `V1.0` | 迭代一验收通过 [9][12] |
-| `V2.0-alpha` | 迭代二前段完成 [11] |
-| `V2.0` | 迭代二完成 [9][11] |
+| `V0.x.x` | P0-P1完成  |
+| `V1.x.x` | P2-P6迭代一各阶段 |
+| `V2.x.x` | P7-P10迭代二各阶段 |
 
 ---
 
@@ -468,106 +466,4 @@ YYYYMMDD_阶段_测试内容.md
 
 ---
 
-## 七、.gitignore 建议
-
-```gitignore
-# ROS2 build
-build/
-install/
-log/
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# Data (large files)
-data/bags/
-data/logs/
-data/calibration_data/
-
-# Videos
-presentation/demo_videos/*.mp4
-presentation/demo_videos/*.mkv
-
-# CAD
-hardware/mechanical/*.step
-hardware/mechanical/*.stl
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-*.swp
-*.swo
-
-# Compiled firmware
-firmware/build/
-firmware/Debug/
-firmware/Release/
-```
-
----
-
-## 八、README.md 建议结构
-
-```markdown
-# Project0 — 地面移动具身智能平台
-
-## 项目简介
-面向教学楼室内走廊场景的具身智能小车平台，具备感知—定位—导航—语义理解—安全保护闭环能力。
-
-## 项目状态
-当前阶段：P1 / 版本：V0.1
-
-## 硬件平台
-- 计算：Jetson Orin NX 16GB
-- 下位机：STM32F407ZGT6
-- 激光雷达：Livox Mid-360
-- 深度相机：Intel RealSense D435
-- 底盘：四轮差速（GB37-555 ×4）
-
-## 快速开始
-1. 环境部署：见 `docs/04_deployment/`
-2. 编译：`colcon build`
-3. 启动：`bash scripts/start_all.sh`
-
-## 目录结构
-（简要列出一级目录及说明）
-
-## 版本记录
-见 CHANGELOG.md
-
-## 作者
-XXX / 广东工业大学
-```
-
----
-
-## 九、LICENSE 与 CHANGELOG
-
-**LICENSE**：建议建立。推荐 `MIT` 或 `Apache-2.0`。即使暂时不开源，有LICENSE体现工程规范性，复试展示时加分。
-
-**CHANGELOG.md**：强烈建议建立。格式：
-
-```markdown
-# Changelog
-
-## [V0.1] - 2025-07-XX
-### 完成
-- P0项目定义锁定
-- P1功能清单与技术选型完成
-- Git仓库与目录结构建立
-
-## [V0.2] - 2025-XX-XX
-### 完成
-- P2底盘运动闭环成立
-```
-
-每个Git tag对应一条CHANGELOG条目，与版本线路图对齐 [9][12]。
-
----
-
-**总结**：以上结构覆盖了你项目的六条主线（定义规划 + 工程实现 + 数据实验 + 测试验收 + 过程沉淀 + 成果表达）[2][7][10]，按阶段渐进建立，单人可维护，直接照着建即可。
+**总结**：以上结构覆盖了你项目的六条主线（定义规划 + 工程实现 + 数据实验 + 测试验收 + 过程沉淀 + 成果表达），按阶段渐进建立，单人可维护，直接照着建即可。
