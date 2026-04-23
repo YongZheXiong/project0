@@ -76,4 +76,19 @@ All notable changes to Project-0 will be documented in this file.
 
 ---
 
-## [0.2.3] - 
+## [0.2.3] - 2026-4-24
+
+### Changed
+- 更新了 objective_constraints.md 中的已有硬件条件
+- 完善了 subjective_requirements.md 的文件格式
+- 完善了 iter1_core_capabilities.md 的文件格式
+- 完善了 iter2_enhancement_scope.md 的文件格式
+- 完善 file_structure_design_proposal.md 的文件格式 
+- 完善 iter1_function_list.md 的文件格式
+- 更新 power_architecture.md
+- 更新 hardware_architecture.md
+- 完善 interface_definition.md 文件格式
+
+---
+
+## [0.2.4] - 
