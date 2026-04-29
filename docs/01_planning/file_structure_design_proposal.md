@@ -45,7 +45,7 @@ project0/
 │   ├── 03_design/                          # P2-P6：各模块详细设计（逐步建立）
 │   │   ├── chassis_motion.md
 │   │   ├── perception_sensors.md
-│   │   ├── slam_localization.md
+│   │   ├── slam_local ization.md
 │   │   ├── navigation_obstacle.md
 │   │   ├── semantic_navigation.md
 │   │   ├── task_scheduler.md
