@@ -8,7 +8,7 @@ All notable changes to Project-0 will be documented in this file.
 - 
 
 ### Changed
-- 
+- 统一了 决策文件的格式
 
 ### Deprecated
 -
