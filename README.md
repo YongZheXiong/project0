@@ -9,8 +9,8 @@
 | 项目 | 状态 |
 |------|------|
 | 当前阶段 | P1：功能落地、技术选型与工程准备 |
-| 当前版本 | V0.2.3 |
-| 最近更新 | 完善 interface_definition.md 文件格式 |
+| 当前版本 | V0.2.4 |
+| 最近更新 | 重写了 hardware_architecture.md |
 
 ## 硬件平台
 - 计算：Jetson Orin NX 16GB
