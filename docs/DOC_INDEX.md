@@ -26,9 +26,11 @@
 | `CHANGELOG.md` | 版本变更记录 | 不是设计事实源，只记录版本变化 |
 | `AGENTS.md` | 协作规则 | 约束 AI / 人类工作方式，不定义项目事实 |
 | `docs/DOC_INDEX.md` | 文档索引 | 治理导航，不是事实源 |
-| `docs/_meta/` | 治理元数据 | 已建立空目录骨架，当前仅有 .gitkeep，治理规则、模板、审计报告待补 |
+| `docs/_meta/` | 治理元数据 | 已建立治理元数据目录，`conventions/` 已包含 AI 工作流和文档治理规则，`audit/` 与 `templates/` 可保留为空目录骨架或待后续使用 |
+| `docs/_meta/conventions/ai_workflow.md` | AI 工作流规范 | 规定对话式 AI、Codex / Agent、人工决策和 Git 的分工 |
+| `docs/_meta/conventions/document_governance.md` | 文档治理规范 | 规定文档事实源、颗粒度、状态、引用和修改边界 |
 
-补充说明：`process/weekly_log/` 与 `process/learning_notes/` 属于过程记录与学习沉淀，不是事实源。
+补充说明：`process/change_requests/` 已建立最小 CR 机制，包含 `README.md`、`CR-000_template.md`、`CR-001`、`CR-002`、`CR-003` 等变更记录。`process/weekly_log/` 与 `process/learning_notes/` 属于过程记录与学习沉淀，不是事实源。
 
 ### 2.2 项目定义层 `docs/00_definition/`
 
@@ -83,10 +85,10 @@
 | `DEC-000_example.md` | 示例 | 仅用于示例，不是项目事实源 |
 | `DEC-001` ~ `DEC-021` | 决策记录 | 属于技术决策事实源 |
 | `DEC-009-semantic_location_owned_by_ap_manager.md` | 异常 | 当前为空文件，待人工确认 |
-| `DEC-013-manual_takeover_and_estop.md` | 异常待复核 | 不在本文档下结论 |
-| `DEC-014-power_architecture_boundary.md` | 异常待复核 | 不在本文档下结论 |
+| `DEC-013-manual_takeover_and_estop.md` | 废弃 | 已废弃，不再作为人工接管、急停或电源架构事实源；人工接管以 DEC-018 为准，急停以 DEC-019 为准，电源边界以 DEC-014 为准 |
+| `DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
 
-说明：DEC 文件只能作为决策事实源使用，但异常文件先停在复核层，不在本文档里替它们下结论。
+说明：DEC 文件只能作为决策事实源使用；DEC-009 暂缓复核；DEC-013 已废弃；DEC-014、DEC-018、DEC-019 分别承担电源边界、人工接管、急停事实源。
 
 ### 2.6 部署 / 实现 / 测试 / 报告层
 
@@ -160,10 +162,10 @@
 | `data/README.md` | 占位 | 只是目录说明 |
 | `process/decisions/DEC-000_example.md` | 示例 | 不参与事实裁决 |
 | `process/decisions/DEC-009-semantic_location_owned_by_ap_manager.md` | 空文件 | 待补齐与确认 |
-| `process/decisions/DEC-013-manual_takeover_and_estop.md` | 异常待复核 | 需人工确认 |
-| `process/decisions/DEC-014-power_architecture_boundary.md` | 异常待复核 | 需人工确认 |
-| `docs/_meta/` | 规划中 | 已建立空目录骨架，当前仅有 .gitkeep，治理规则、模板、审计报告待补 |
-| `process/change_requests/` | 规划中 | 当前未建 |
+| `process/decisions/DEC-013-manual_takeover_and_estop.md` | 废弃 | 已废弃，不再作为人工接管、急停或电源架构事实源 |
+| `process/decisions/DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
+| `docs/_meta/` | 已建立治理元数据目录 | `conventions/` 已包含 `ai_workflow.md` 与 `document_governance.md`；`audit/` 与 `templates/` 当前可保留为空目录骨架或待后续使用 |
+| `process/change_requests/` | 已建立最小 CR 机制 | 包含 `README.md`、`CR-000_template.md`、`CR-001`、`CR-002`、`CR-003` 等变更记录 |
 
 ---
 
@@ -172,13 +174,16 @@
 跨文件修改前，先看这些文件：
 1. `AGENTS.md`
 2. `docs/DOC_INDEX.md`
-3. 相关 `docs/00_definition/*`
-4. 相关 `process/decisions/*`
-5. `docs/01_planning/iter1_function_list.md`
-6. `docs/01_planning/iter1_function_items.md`
-7. 相关 `docs/02_architecture/*`，尤其是 `interface_definition.md`
-8. 若涉及硬件或采购，再看 `hardware/` 与 `docs/04_deployment/`
-9. 若涉及对外摘要或版本说明，再看 `README.md` 与 `CHANGELOG.md`
+3. `docs/_meta/conventions/ai_workflow.md`
+4. `docs/_meta/conventions/document_governance.md`
+5. 相关 `process/change_requests/*`
+6. 相关 `docs/00_definition/*`
+7. 相关 `process/decisions/*`
+8. `docs/01_planning/iter1_function_list.md`
+9. `docs/01_planning/iter1_function_items.md`
+10. 相关 `docs/02_architecture/*`，尤其是 `interface_definition.md`
+11. 若涉及硬件或采购，再看 `hardware/` 与 `docs/04_deployment/`
+12. 若涉及对外摘要或版本说明，再看 `README.md` 与 `CHANGELOG.md`
 
 跨文件修改统一遵循：
 
@@ -193,9 +198,8 @@
 
 ## 7. 当前治理待办
 
-1. 补全 `docs/DOC_INDEX.md`；
-2. 建立 `process/change_requests/`；
-3. 同步 `README.md` 为真实入口；
-4. 只读复核 DEC 异常；
-5. 修复人工接管链路下游文档冲突；
-6. 再进入 P1.3 `procurement_list.md` 与 `hardware/bom.csv`。
+1. 关闭 CR-003，并进入后续 G0 全项目已有文件规范化收束；
+2. 使用 `process/change_requests/` 管理后续跨文件治理修改；
+3. 分批只读审计并规范化已有文件状态；
+4. 对需要人工确认的 DEC 异常保持只读复核，不在索引中替 DEC 下结论；
+5. 完成 G0 治理收束后，再进入 P1.3 `procurement_list.md` 与 `hardware/bom.csv`。
