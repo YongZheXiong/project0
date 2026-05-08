@@ -8,54 +8,76 @@
 
 | 项目 | 状态 |
 |------|------|
-| 当前阶段 | P1：功能落地、技术选型与工程准备 |
-| 当前版本 | V0.2.4 |
-| 最近更新 | 重写了 hardware_architecture.md |
+| 当前阶段 | P1.3：硬件方案与采购 |
+| 当前治理状态 | governance 分支正在进行项目治理、文档对齐与 AI 工作流建立 |
+| 当前主线目标 | 完成治理最小修复后，回到 P1.3 BOM 与采购清单 |
+| 当前版本 | V0.2.5-dev / governance 中 |
 
-## 硬件平台
+## 硬件平台（已确认摘要）
+
 - 计算：Jetson Orin NX 16GB
 - 激光雷达：Livox Mid-360
 - 深度相机：Intel RealSense D435
-- 底盘：四轮差速 (JGB-520 * 4)
+- 底盘：四轮差速（JGB-520 x 4）
 
-## 快速开始
+其余硬件缺口、采购优先级与 BOM 以 P1.3 阶段输出的采购清单为准，README 不单独定义新的硬件结论。
 
-## 目录结构
+## 文档导航
+
+- [docs/DOC_INDEX.md](docs/DOC_INDEX.md)：文档索引与依赖关系
+- [AGENTS.md](AGENTS.md)：AI / Codex 协作规则
+- [process/change_requests/](process/change_requests/)：跨文件变更请求机制
+- [process/decisions/](process/decisions/)：关键决策记录
+- [CHANGELOG.md](CHANGELOG.md)：版本记录
+
+README 只是仓库入口摘要，不替代 DOC_INDEX、DEC 决策记录、架构文档和 CHANGELOG。
+
+## 当前真实目录结构
+
 ```text
 project0/
-├── docs/                   # 文档
-│   ├── 00_definition/      # P0：项目定义
-│   ├── 01_planning/        # P1：功能与选型
-│   ├── 02_architecture/    # P1：架构设计
-│   ├── 03_design/          # P2+：模块详设
-│   ├── 04_deployment/      # 部署说明
-│   ├── 05_calibration/     # 标定记录
-│   ├── 06_testing/         # 测试
-│   └── 07_iter2/           # 迭代二文档
-├── hardware/               # 硬件
-├── firmware/               # STM32固件
-├── src/                    # ROS2源码
-├── config/                 # 配置
-├── scripts/                # 脚本
-├── data/                   # 运行数据
-├── experiments/            # 实验
-├── simulation/             # 仿真
-├── reports/                # 报告
-├── presentation/           # 展示与答辩
-└── process/                # 过程沉淀
-|   ├── decisions/          # 决策记录
-|   ├── learning_notes/
-|   └── weekly_log/         # 周记
-├── README.md
-├── LICENSE
+├── config/
+├── data/
+├── docs/
+│   ├── 00_definition/
+│   ├── 01_planning/
+│   ├── 02_architecture/
+│   ├── 04_deployment/
+│   ├── _meta/
+│   └── DOC_INDEX.md
+├── experiments/
+├── firmware/
+├── hardware/
+│   └── README.md
+├── presentation/
+├── process/
+│   ├── change_requests/
+│   ├── decisions/
+│   ├── learning_notes/
+│   └── weekly_log/
+├── reports/
+├── scripts/
+├── simulation/
+├── src/
+├── AGENTS.md
 ├── CHANGELOG.md
-└── .gitignore
+├── LICENSE
+└── README.md
 ```
 
----
+## 规划中目录
+
+以下目录属于后续规划，当前尚未创建，不属于上方当前真实目录树：
+
+- `docs/03_design/`
+- `docs/05_calibration/`
+- `docs/06_testing/`
+- `docs/07_iter2/`
 
 ## 版本记录
-见 CHANGELOG.md
+
+见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 作者
+
 Xiong Yongzhe
