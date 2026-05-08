@@ -1,7 +1,7 @@
 # CR-002：AI 工作流与文档治理规则固化
 
 ## 状态
-草案
+已完成
 
 ## 日期
 2026-05-08
@@ -47,3 +47,16 @@
 3. 创建 document_governance.md
 4. 验证规则文档简洁可执行
 5. 关闭 CR-002
+
+## 最终结果
+1. 已创建 docs/_meta/conventions/ai_workflow.md；
+2. 已创建 docs/_meta/conventions/document_governance.md；
+3. ai_workflow.md 明确了对话式 AI、Codex / Agent、人工和 Git 的分工；
+4. ai_workflow.md 明确了 Plan → Execute → Verify → Commit 工作流；
+5. ai_workflow.md 明确了必须建立 CR 的情况和 Agent 使用红线；
+6. document_governance.md 明确了 Project0 文档层级、事实源、文件状态、颗粒度和修改规则；
+7. document_governance.md 明确了 G0 全项目已有文件规范化收束原则；
+8. 本 CR 未修改 DEC、README、AGENTS、DOC_INDEX、CHANGELOG 或业务架构文档。
+
+## 关联 commit
+- baec884 docs(conventions): add AI workflow and document governance rules
