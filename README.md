@@ -16,7 +16,7 @@
 ## 硬件平台（已确认摘要）
 
 - 计算：Jetson Orin NX 16GB
-- 激光雷达：Livox Mid-360
+- 激光雷达：Livox Mid360
 - 深度相机：Intel RealSense D435
 - 底盘：四轮差速（JGB-520 x 4）
 
