@@ -6,7 +6,7 @@ DEC 异常复核与人工接管链路对齐
 
 ## 状态
 
-草案
+已完成
 
 ## 日期
 
@@ -99,8 +99,17 @@ DEC 异常复核与人工接管链路对齐
 
 ## 最终结果
 
-待填写。
+本 CR 已完成，实际结果如下：
+
+1. DEC-013 已标记为废弃。
+2. DEC-013 不再作为人工接管、急停、电源架构事实源。
+3. 人工接管事实源以 DEC-018 为准。
+4. 急停事实源以 DEC-019 为准。
+5. 电源架构主边界以 DEC-014 为准。
+6. compute_comm_architecture.md 与 power_architecture.md 已按 DEC-018 修复人工接管链路。
+7. 未修改 DEC-014、DEC-018、DEC-019。
 
 ## 关联 commit
 
-未提交。
+- a7eb6eb docs(dec): deprecate invalid DEC-013 record
+- 048b0de docs(arch): align manual takeover chain with DEC-018
