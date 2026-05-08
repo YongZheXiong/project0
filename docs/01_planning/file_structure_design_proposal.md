@@ -1,8 +1,18 @@
 # 项目0 完整文件结构设计方案
 
+## 文件状态说明
+
+本文件是项目0早期形成的文件结构规划方案，也是历史结构方案记录，不是当前真实目录树。
+
+当前真实目录以实际仓库 tree 为准；`README.md` 和 `docs/DOC_INDEX.md` 仅作为入口摘要与索引导航，不替代实际目录状态。
+
+本文中的目录树混合了当前目录、规划目录、未来目录和示例文件，不表示所有目录或文件已经存在，也不应根据本文自动创建未来目录。
+
 ---
 
-## 一、英文命名版目录树（主版本，Git仓库实际使用）
+## 一、英文命名版规划目录树（历史方案，非当前真实目录）
+
+提示：以下目录树用于保留历史规划参考价值，混合了当前目录、规划目录、未来目录和示例文件；不表示所有目录或文件已经存在，不应据此自动创建未来目录。
 
 ```
 project0/
@@ -42,7 +52,7 @@ project0/
 │   │       ├── system_arch.drawio
 │   │       └── data_flow.drawio
 │   │
-│   ├── 03_design/                          # P2-P6：各模块详细设计（逐步建立）
+│   ├── 03_design/                          # 未来规划目录：P2-P6各模块详细设计（逐步建立）
 │   │   ├── chassis_motion.md
 │   │   ├── perception_sensors.md
 │   │   ├── slam_local ization.md
@@ -59,13 +69,13 @@ project0/
 │   │   ├── remote_dev_setup.md             # 远程开发方案
 │   │   └── run_instructions.md             # 运行说明（从零到可运行）
 │   │
-│   ├── 05_calibration/                     # 标定记录（P2-P3建立）
+│   ├── 05_calibration/                     # 未来规划目录：标定记录（P2-P3建立）
 │   │   ├── sensor_extrinsics.yaml
 │   │   ├── imu_calibration.md
 │   │   ├── camera_intrinsics.yaml
 │   │   └── encoder_calibration.md
 │   │
-│   ├── 06_testing/                         # 【测试层】测试计划与记录
+│   ├── 06_testing/                         # 未来规划目录：【测试层】测试计划与记录
 │   │   ├── test_plan_iter1.md              # 迭代一测试计划
 │   │   ├── acceptance_criteria_iter1.md    # 迭代一验收标准
 │   │   ├── test_scenarios/                 # 测试场景清单
@@ -81,7 +91,7 @@ project0/
 │   │   └── regression/                     # 回归测试（P6+建立）
 │   │       └── regression_checklist.md
 │   │
-│   └── 07_iter2/                           # 迭代二专用文档（P7+建立）
+│   └── 07_iter2/                           # 未来规划目录：迭代二专用文档（P7+建立）
 │       ├── enhancement_plan.md             # 增强方案设计
 │       ├── experiment_design.md            # 实验设计
 │       ├── baseline_data.md                # 性能基线
@@ -343,9 +353,9 @@ project0/
 | `src/project0_task/` | P5 |
 | `src/project0_safety/` | P4-P6 |
 | `src/project0_monitor/` | P6 |
-| `docs/03_design/` | P2起逐模块补充 |
-| `docs/05_calibration/` | P2-P3 |
-| `docs/06_testing/` | P2起逐阶段补充 [12] |
+| `docs/03_design/` | 未来规划目录，P2起逐模块补充 |
+| `docs/05_calibration/` | 未来规划目录，P2-P3 |
+| `docs/06_testing/` | 未来规划目录，P2起逐阶段补充 [12] |
 | `data/` | P2起首次真机运行时建立 |
 | `experiments/` | P2起首个实验时建立 |
 | `process/problem_log/` | P2起首次遇到问题时 |
@@ -359,7 +369,7 @@ project0/
 
 | 目录 | 说明 |
 |------|------|
-| `docs/07_iter2/` | 增强方案、实验设计、基线数据 [11] |
+| `docs/07_iter2/` | 未来规划目录，增强方案、实验设计、基线数据 [11] |
 | `reports/iter2_enhancement_report/` | P8-P9 |
 | `reports/final_report/` | P10 [1] |
 | `presentation/defense_ppt/` | P10 [1] |
@@ -466,4 +476,4 @@ YYYYMMDD_阶段_测试内容.md
 
 ---
 
-**总结**：以上结构覆盖了你项目的六条主线（定义规划 + 工程实现 + 数据实验 + 测试验收 + 过程沉淀 + 成果表达），按阶段渐进建立，单人可维护，直接照着建即可。
+**总结**：以上结构覆盖了项目0早期规划中的六条主线（定义规划 + 工程实现 + 数据实验 + 测试验收 + 过程沉淀 + 成果表达），可作为历史规划参考；后续阶段可按 CR、阶段目标和人工确认逐步采纳。
