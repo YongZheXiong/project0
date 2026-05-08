@@ -214,13 +214,13 @@
                 <mxCell id="BKJ89B8Dobpz3hbUdNUl-137" value="" style="group" parent="1" connectable="0" vertex="1">
                     <mxGeometry x="-150" y="320" width="440" height="380" as="geometry"/>
                 </mxCell>
-                <mxCell id="BKJ89B8Dobpz3hbUdNUl-36" value="RealSence D435" style="rounded=1;whiteSpace=wrap;html=1;container=0;" parent="BKJ89B8Dobpz3hbUdNUl-137" vertex="1">
+                <mxCell id="BKJ89B8Dobpz3hbUdNUl-36" value="RealSense D435" style="rounded=1;whiteSpace=wrap;html=1;container=0;" parent="BKJ89B8Dobpz3hbUdNUl-137" vertex="1">
                     <mxGeometry x="320" y="320" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="BKJ89B8Dobpz3hbUdNUl-111" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="BKJ89B8Dobpz3hbUdNUl-137" source="BKJ89B8Dobpz3hbUdNUl-40" target="BKJ89B8Dobpz3hbUdNUl-36" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="BKJ89B8Dobpz3hbUdNUl-35" value="Livox Mid3360" style="rounded=1;whiteSpace=wrap;html=1;container=0;" parent="BKJ89B8Dobpz3hbUdNUl-137" vertex="1">
+                <mxCell id="BKJ89B8Dobpz3hbUdNUl-35" value="Livox Mid360" style="rounded=1;whiteSpace=wrap;html=1;container=0;" parent="BKJ89B8Dobpz3hbUdNUl-137" vertex="1">
                     <mxGeometry x="160" y="320" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="BKJ89B8Dobpz3hbUdNUl-110" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="BKJ89B8Dobpz3hbUdNUl-137" source="BKJ89B8Dobpz3hbUdNUl-40" target="BKJ89B8Dobpz3hbUdNUl-35" edge="1">
@@ -250,7 +250,7 @@
                 <mxCell id="BKJ89B8Dobpz3hbUdNUl-138" value="" style="group" parent="1" connectable="0" vertex="1">
                     <mxGeometry x="320" y="560" width="120" height="140" as="geometry"/>
                 </mxCell>
-                <mxCell id="BKJ89B8Dobpz3hbUdNUl-74" value="2.4G USB接收器" style="rounded=1;whiteSpace=wrap;html=1;container=0;" parent="BKJ89B8Dobpz3hbUdNUl-138" vertex="1">
+                <mxCell id="BKJ89B8Dobpz3hbUdNUl-74" value="2.4G USB 接收器" style="rounded=1;whiteSpace=wrap;html=1;container=0;" parent="BKJ89B8Dobpz3hbUdNUl-138" vertex="1">
                     <mxGeometry y="80" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="BKJ89B8Dobpz3hbUdNUl-106" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="BKJ89B8Dobpz3hbUdNUl-138" source="BKJ89B8Dobpz3hbUdNUl-75" target="BKJ89B8Dobpz3hbUdNUl-74" edge="1">
