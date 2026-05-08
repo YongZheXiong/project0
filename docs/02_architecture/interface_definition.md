@@ -11,6 +11,8 @@
 
 本文档当前版本为**骨架版 V0.1**，服务于迭代一“先跑通主链路、建立统一接口骨架、建立安全/管理/记录基础辅助包、保证地图/语义位置表/任务/模式最小成立”的目标，不追求一次性把全部字段定义写死。
 
+CR-007 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字段级 msg / srv / action 结构仍可在 P2-P5 联调中调整，V1.0 才是 P6 验收版正式接口清单。
+
 ----------------------------------------
 
 # 2. 编写原则
@@ -41,7 +43,9 @@
 接口设计必须服务于分层解耦，而不能破坏分层。典型约束包括：
 
 * `p0_base_bridge` 不直接理解语义任务；
+* `p0_navigation` 不直接理解语义目标，只接收可执行的坐标、位姿或路径约束；
 * `p0_semantic_nav` 不直接管理地图文件；
+* `p0_semantic_nav` 不管理任务生命周期；
 * `p0_task_manager` 不直接承担底层路径规划；
 * `p0_safety_manager` 集中承担安全仲裁；
 * `p0_data_tools` 不反向控制主业务逻辑。
@@ -53,7 +57,8 @@
 * 允许部分字段写为“待细化 / 后续补充”；
 * 允许少量接口名称在 P2-P5 联调中调整；
 * 允许为迭代二增强保留预留字段与备注列；
-* 但迭代一最小闭环所需接口应尽量先稳定下来。
+* 但迭代一最小闭环所需接口应尽量先稳定下来；
+* CR-007 形成的是 P1 骨架口径，不把 V0.1 写成 V1.0 冻结版。
 
 ----------------------------------------
 
@@ -178,7 +183,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | `/p0/map/save` | `p0_interfaces/SaveMap` | `p0_map_manager` | `p0_mapping`, 运维入口 | 保存当前地图 | 建议实现 | 软件架构指出建图通过请求响应型接口与地图管理协作完成地图保存。 |
 | `/p0/map/load` | `p0_interfaces/LoadMap` | `p0_map_manager` | `p0_localization`, `p0_system_manager` | 加载指定地图 | 必须实现 | 软件架构指出地图管理向定位提供地图加载资源。 |
-| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | `p0_map_manager` | `p0_semantic_nav` | 查询语义位置对应空间目标 | 必须实现 | 已在建议版接口中出现。 |
+| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | `p0_map_manager` | `p0_semantic_nav` | 查询语义位置对应空间目标 | 必须实现 | P1 骨架口径采用 `QuerySemanticPose.srv`；`GetSemanticPose.srv` 仅作为历史备选命名待淘汰，不代表 V1.0 最终冻结。 |
 
 ## 6.2 系统管理服务
 
@@ -192,7 +197,7 @@
 
 | Service 名称 | 类型 | 服务方 | 调用方 | 作用 | 迭代一状态 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `/p0/safety/emergency_stop` | `p0_interfaces/TriggerEmergencyStop` | `p0_safety_manager` 或 `p0_system_manager` | 运维入口、`p0_system_manager` | 触发 / 解除急停 | 必须实现 | 初始接口清单已给出骨架，最终归属待联调确认。 |
+| `/p0/safety/emergency_stop` | `p0_interfaces/TriggerEmergencyStop` | `p0_safety_manager` | 运维入口、`p0_system_manager` | 触发软件急停 / 安全仲裁 | 必须实现 | P1 骨架归属为 `p0_safety_manager`；`p0_system_manager` 可作为系统模式联动方或调用方；解除 / 复位语义仍待 P2-P5 联调确认。 |
 | `/p0/safety/reset_emergency` | `p0_interfaces/ResetEmergency` | `p0_safety_manager` | 运维入口 | 清除软件侧急停状态 | 接口预留 | 与硬件急停边界需在 P2-P4 联调中进一步明确。 |
 
 ## 6.4 底盘桥接服务
@@ -212,7 +217,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | `/p0/navigation/go_to_pose` | 标准导航动作或封装动作 | `p0_navigation` | `p0_task_manager` | 执行点位导航 | 必须实现 | 已在建议版接口中出现。 |
 | `/p0/navigation/follow_waypoints` | 标准导航动作或封装动作 | `p0_navigation` | `p0_task_manager` | 执行多点位导航 | 接口预留 | 已在建议版接口中出现片段，迭代一非必须。 |
-| `/p0/navigation/navigate_to_semantic` | `p0_interfaces/NavigateToSemantic` | `p0_navigation` 或 `p0_task_manager` | 上层任务调用方 | 语义导航任务执行 | 接口预留 | 初始接口清单给出骨架，最终服务方待联调确认。 |
+| `/p0/navigation/navigate_to_semantic` | `p0_interfaces/NavigateToSemantic` | `p0_task_manager`（P1 骨架倾向） | 上层任务调用方 | 语义导航任务编排 | 接口预留 | P1 骨架倾向由 `p0_task_manager` 作为任务编排方，调用 `p0_semantic_nav` 完成语义目标解析，再调用 `p0_navigation` 执行导航；不表示 `p0_navigation` 理解语义，最终归属仍待 P2-P5 联调确认。 |
 
 ## 7.2 任务 Action
 
@@ -250,22 +255,23 @@
 
 | 文件名 | 作用 | 当前状态 |
 | --- | --- | --- |
-| `QuerySemanticPose.srv` / `GetSemanticPose.srv` | 查询语义位置 → 空间位姿 | 必须实现 |
+| `QuerySemanticPose.srv` | 查询语义位置 → 空间位姿 | 必须实现 |
+| `GetSemanticPose.srv` | 查询语义位置 → 空间位姿 | 历史备选命名，待淘汰 |
 | `SetSystemMode.srv` | 请求切换系统模式 | 必须实现 |
-| `TriggerEmergencyStop.srv` | 触发 / 解除急停 | 必须实现 |
+| `TriggerEmergencyStop.srv` | 触发软件急停 / 安全仲裁 | 必须实现 |
 | `LoadMap.srv` | 加载地图 | 必须实现 |
 | `RunSelfCheck.srv` | 触发自检 | 建议实现 |
 | `ResetFault.srv` | 清除可恢复故障状态 | 接口预留 |
 | `ResetBridge.srv` | 重新初始化底盘桥接 | 建议实现 |
 | `SetBaseMode.srv` | 切换底盘控制模式 | 建议实现 |
 
-> 注：`QuerySemanticPose.srv` 与 `GetSemanticPose.srv` 当前命名存在两版来源，V0.1 暂记为“二选一待统一”，后续建议统一为单一名称。
+> 注：CR-007 后 P1 骨架口径建议采用 `QuerySemanticPose.srv`；`GetSemanticPose.srv` 仅保留为历史备选命名并标注待淘汰。该口径不代表 V1.0 最终冻结。
 
 ## 8.3 Action 清单（骨架版）
 
 | 文件名 | 作用 | 当前状态 |
 | --- | --- | --- |
-| `NavigateToSemantic.action` | 语义导航任务（目标名称 → 导航执行 → 结果反馈） | 接口预留 / 建议实现 |
+| `NavigateToSemantic.action` | 语义导航任务编排（目标名称 → 语义解析 → 导航执行 → 结果反馈） | 接口预留，P1 骨架倾向由 `p0_task_manager` 编排 |
 | `ExecuteTask.action` | 任务执行动作 | 接口预留 |
 | `GoToPose.action` | 点位导航封装动作 | 建议实现 |
 
@@ -338,13 +344,14 @@
 
 # 11. 待统一与待确认项
 
-以下内容在 V0.1 中明确标记为待统一：
+以下内容在 CR-007 后形成 P1 骨架口径，但仍不是 V1.0 最终冻结：
 
-1. `QuerySemanticPose.srv` 与 `GetSemanticPose.srv` 的最终命名统一；
-2. `TriggerEmergencyStop.srv` 的最终服务方归属是 `p0_safety_manager` 还是 `p0_system_manager`；
+1. 语义位置查询服务采用 `QuerySemanticPose.srv` 作为 P1 骨架口径，`GetSemanticPose.srv` 标注为历史备选命名 / 待淘汰；
+2. `TriggerEmergencyStop.srv` 的 P1 骨架主归属为 `p0_safety_manager`，用于软件急停触发与安全仲裁；`p0_system_manager` 可作为系统模式联动方或调用方，解除 / 复位语义仍待 P2-P5 联调确认；
 3. `/p0/navigation/go_to_pose` 是否直接采用 Nav2 标准动作，还是由 `p0_navigation` 再封装一层；
-4. `NavigateToSemantic.action` 的服务方归属是 `p0_navigation`、`p0_semantic_nav` 还是 `p0_task_manager`；
+4. `NavigateToSemantic.action` 的 P1 骨架倾向由 `p0_task_manager` 作为任务编排方，调用 `p0_semantic_nav` 与 `p0_navigation`；最终 action 命名空间、服务方归属和字段结构仍待 P2-P5 联调确认；
 5. 部分 Topic 的标准消息类型选型与最终字段（如 odom、pose、path 等）在 P2-P4 联调中进一步确认。
+6. 所有字段级 msg / srv / action 结构仍可在 P2-P5 联调中调整，V1.0 才是 P6 验收版正式接口清单。
 
 ----------------------------------------
 
@@ -366,7 +373,7 @@
 * 优先新增字段，避免随意破坏既有接口；
 * 优先保持命名统一与前向兼容；
 * 自定义结构优先沉淀到 `p0_interfaces`；
-* 每次接口变更应对应一条 CHANGELOG 条目，并与版本路线图对齐。
+* 字段级接口变更或 V1.0 冻结前的正式接口调整应对应 CHANGELOG 条目，并与版本路线图对齐；仅标注 P1 骨架状态和待确认项时，可按对应 CR 留痕。
 
 ## 12.3 与后续文档协同
 
@@ -448,5 +455,4 @@
 
 # 14. 总结
 
-本文档作为 `interface_definition.md` 骨架版 V0.1，已经在软件架构给出的接口组织原则、架构级接口关系、建议版话题/服务/动作接口与 `p0_interfaces` 初始接口清单基础上，整理出面向迭代一最小闭环的具体接口定义表骨架，用于支撑后续 P2-P6 的模块设计、实现、联调、测试与验收。
-```
+本文档作为 `interface_definition.md` 骨架版 V0.1，已经在软件架构给出的接口组织原则、架构级接口关系、建议版话题/服务/动作接口与 `p0_interfaces` 初始接口清单基础上，整理出面向迭代一最小闭环的 P1 接口定义表骨架，用于支撑后续 P2-P6 的模块设计、实现、联调、测试与验收；字段级结构和最终接口清单以 P2-P5 联调结果与 P6 V1.0 验收版为准。
