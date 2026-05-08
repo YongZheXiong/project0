@@ -2,17 +2,33 @@
 
 ## 1. 文件作用
 
-本文件是项目0的 AI / Codex 协作规则文件。
+本文件是项目0的 AI / Codex 协作入口规则文件，用于说明 Agent 进入仓库前必须遵守的阶段、边界、红线和协作流程。
 
 所有 AI、Codex、GPT、Opus、CherryStudio 在参与项目0规划、审查、修改文档或修改代码前，都应先阅读本文件。
+
+本文件承接并指向以下治理入口，不重复完整写入其细则：
+1. `docs/_meta/conventions/ai_workflow.md`：日常 AI 使用流程细则；
+2. `docs/_meta/conventions/document_governance.md`：文档事实源、颗粒度、状态和修改边界细则；
+3. `docs/DOC_INDEX.md`：文档索引与依赖导航；
+4. `process/change_requests/`：跨文件修改入口。
 
 ---
 
 ## 2. 当前阶段
 
-当前阶段：P1.3 硬件方案与采购。
+当前仓库状态：`governance` 分支正在进行 G0 项目治理收束。
 
-当前阶段重点：
+当前项目主线阶段仍是：P1.3 硬件方案与采购。
+
+当前 G0 目标：
+1. 整理已有文件；
+2. 纠错；
+3. 标注状态；
+4. 对齐事实源与文档颗粒度。
+
+G0 完成后，应回到 P1.3 硬件方案与采购主线。
+
+P1.3 阶段重点：
 1. 已有硬件盘点与状态确认；
 2. 缺失硬件确定；
 3. BOM 与采购清单输出；
@@ -64,6 +80,10 @@ Plan → Execute → Verify → Commit
 3. Verify：修改后检查是否存在矛盾、越界、遗漏。
 4. Commit：人工查看 diff 后，再提交到 Git。
 
+涉及跨文件修改时，必须先建立或引用 `process/change_requests/` 中的 CR，并遵守 CR 明确的允许修改范围和禁止修改范围。
+
+日常 AI / Codex 使用流程细则以 `docs/_meta/conventions/ai_workflow.md` 为准。
+
 ---
 
 ## 6. 文档治理原则
@@ -71,9 +91,11 @@ Plan → Execute → Verify → Commit
 1. 单一事实源：同一事实只在一个权威位置定义。
 2. 下游文档只引用或承接，不重复定义上游事实。
 3. 决策理由优先记录在 process/decisions/DEC-XXX 文件中。
-4. 跨文件变更应记录到 process/change_requests/。
+4. 跨文件变更必须建立或引用 process/change_requests/。
 5. 重要版本变化应更新 CHANGELOG.md。
 6. 接口变更必须检查 interface_definition.md、相关设计文档和 CHANGELOG.md。
+
+文档事实源、颗粒度、状态和修改边界细则以 `docs/_meta/conventions/document_governance.md` 为准；文档导航与依赖关系以 `docs/DOC_INDEX.md` 为准。
 
 ---
 
@@ -82,8 +104,8 @@ Plan → Execute → Verify → Commit
 当前最高优先级不是“重写所有文档”，而是：
 
 1. 保护当前 Git 状态；
-2. 建立 AI 工作流规则；
-3. 建立文档索引；
-4. 建立变更请求机制；
+2. 对齐 AI 协作入口、文档索引、仓库入口和版本记录；
+3. 使用 AI 工作流规则与文档治理规则约束后续修改；
+4. 使用变更请求机制管理跨文件变更；
 5. 分批治理核心文档；
 6. 回到 P1.3 主线，完成 BOM 与采购清单。

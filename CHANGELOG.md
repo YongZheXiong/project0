@@ -5,8 +5,14 @@ All notable changes to Project-0 will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- 新增 `docs/DOC_INDEX.md` 作为文档索引与依赖导航入口。
+- 新增 `process/change_requests/` 变更请求机制，用于管理跨文件修改。
+- 新增 `docs/_meta/conventions/ai_workflow.md` 与 `docs/_meta/conventions/document_governance.md`，用于约束 AI 工作流和文档治理规则。
 
 ### Changed
+- README 已对齐当前 `governance` 分支治理状态和文档导航。
+- DEC-013 已废弃，人工接管链路已按 DEC-018 对齐。
+- `AGENTS.md`、`docs/DOC_INDEX.md`、`README.md`、`CHANGELOG.md` 已按 CR-003 对齐治理入口。
 
 
 ### Deprecated
