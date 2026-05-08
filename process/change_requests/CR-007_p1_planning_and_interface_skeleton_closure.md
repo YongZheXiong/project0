@@ -10,7 +10,7 @@ P1 规划与接口骨架收口
 
 ## 状态
 
-草案
+已完成
 
 ## 日期
 
@@ -119,8 +119,25 @@ CR-004 审计报告指出，`docs/01_planning/iter1_function_items.md` 存在重
 
 ## 最终结果
 
-待填写。
+1. 已收敛 `docs/01_planning/iter1_function_items.md` 中任务调度相关重复内容；
+2. 已明确 P1 必须能力是“基础任务生命周期与导航绑定”；
+3. 已将复杂多步骤任务、多任务排队、任务级抢占、复杂条件分支标注为接口预留或后续增强；
+4. 已对底盘、导航、任务、安全之间的急停、停车、任务中断、安全状态等交叉内容补充边界说明；
+5. 已对高风险区域相关能力补充边界说明：感知负责提供数据，导航负责代价地图 / 路径约束，安全负责红线与处置；
+6. 已对参数配置相关内容补充边界说明：P1 保留关键参数可配置，参数切换、留痕和复杂配置管理作为接口预留或后续增强；
+7. 已整理 `docs/02_architecture/interface_definition.md` 的 P1 接口骨架口径；
+8. 已明确 `interface_definition.md` 仍是 P1 骨架版，不是最终冻结版，字段级 msg / srv / action 结构仍可在 P2-P5 联调中调整，V1.0 才是 P6 验收版正式接口清单；
+9. 已将 `QuerySemanticPose.srv` 作为 P1 骨架口径，`GetSemanticPose.srv` 标注为历史备选命名 / 待淘汰；
+10. 已将 `TriggerEmergencyStop.srv` 的 P1 骨架主归属标注为 `p0_safety_manager`，`p0_system_manager` 作为系统模式联动方或调用方；
+11. 已将 `NavigateToSemantic.action` 标注为 P1 骨架倾向由 `p0_task_manager` 编排，调用 `p0_semantic_nav` 与 `p0_navigation`；
+12. 已补强分层解耦口径：`p0_navigation` 不理解语义，`p0_semantic_nav` 不管理任务生命周期，`p0_task_manager` 不做底层路径规划，`p0_safety_manager` 集中安全仲裁；
+13. DEC-009 继续保持异常待复核，本 CR 未修改 DEC-009；
+14. 未修改任何 DEC 文件；
+15. 未修改 `docs/DOC_INDEX.md`、`CHANGELOG.md`、`README.md`、`AGENTS.md` 或 `software_architecture.md`；
+16. 未创建未来目录；
+17. 未进入 P1.3 BOM 或采购清单；
+18. 未展开 P2-P6 或 P7-P10 实现内容。
 
 ## 关联 commit
 
-未提交。
+- 96c8a22 docs(planning): close P1 planning and interface skeleton gaps
