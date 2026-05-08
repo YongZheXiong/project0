@@ -1,7 +1,7 @@
 # CR-003：治理入口文件对齐
 
 ## 状态
-草案
+已完成
 
 ## 日期
 2026-05-08
@@ -83,7 +83,14 @@ CR-002 已经建立 AI 工作流规范和文档治理规范。为了让后续 G0
 如果 CR-003 创建阶段需要回滚，可删除该 CR 文件；如果后续执行阶段已经提交，可通过 `git revert` 回滚对应 commit。
 
 ## 最终结果
-待填写。
+- AGENTS.md 已对齐为 AI / Codex 协作入口规则文件；
+- AGENTS.md 已指向 ai_workflow.md、document_governance.md、DOC_INDEX.md 和 process/change_requests/；
+- docs/DOC_INDEX.md 已修正 process/change_requests/ 与 docs/_meta/ 的状态描述；
+- docs/DOC_INDEX.md 已补充 ai_workflow.md 与 document_governance.md 导航；
+- docs/DOC_INDEX.md 已同步 DEC-013 废弃状态与 DEC-014 有效状态；
+- README.md 已补充 AI 工作流规范和文档治理规范导航，并保持仓库入口摘要定位；
+- CHANGELOG.md 已在 Unreleased 中记录本轮 governance 治理变更；
+- 本 CR 未修改 DEC、定义层、规划层、架构层、实现层或 P1.3 BOM / 采购清单。
 
 ## 关联 commit
-未提交。
+- 2154245 docs(governance): align entry files with governance rules
