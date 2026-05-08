@@ -1,7 +1,7 @@
 # CR-006：file_structure_design_proposal.md 定性修正
 
 ## 状态
-草案
+已完成
 
 ## 日期
 2026-05-08
@@ -87,7 +87,19 @@ CR-004 审计报告指出，`docs/01_planning/file_structure_design_proposal.md`
 如果 CR-006 创建阶段需要回滚，可删除该 CR 文件；如果后续执行阶段已经提交，可通过 `git revert` 回滚对应 commit；如果尚未提交，可通过 `git restore` 回滚批准范围内文件。
 
 ## 最终结果
-待填写。
+1. 已将 `docs/01_planning/file_structure_design_proposal.md` 明确定性为“规划方案 / 历史结构方案 / 非当前真实目录”；
+2. 已明确该文件不作为当前真实目录树依据；
+3. 已明确当前真实目录以实际仓库 tree 为准，`README.md` 和 `docs/DOC_INDEX.md` 仅作为入口摘要与索引导航；
+4. 已在文件开头增加文件状态说明；
+5. 已将“英文命名版目录树（主版本，Git仓库实际使用）”改为“英文命名版规划目录树（历史方案，非当前真实目录）”；
+6. 已增加目录树提示，说明其中混合当前目录、规划目录、未来目录和示例文件，不表示所有目录或文件已经存在；
+7. 已明确不应根据该文件自动创建未来目录；
+8. 已将 `docs/03_design/`、`docs/05_calibration/`、`docs/06_testing/`、`docs/07_iter2/` 标注为未来规划目录；
+9. 已弱化“直接照着建即可”等执行诱导表述，改为后续阶段按 CR、阶段目标和人工确认逐步采纳；
+10. 未创建任何未来目录；
+11. 未修改任何 DEC；
+12. 未修改 `README.md` 或 `docs/DOC_INDEX.md`；
+13. 未进入 P1.3 BOM 或采购清单。
 
 ## 关联 commit
-未提交。
+- 3ecdd0c docs(planning): reclassify file structure proposal
