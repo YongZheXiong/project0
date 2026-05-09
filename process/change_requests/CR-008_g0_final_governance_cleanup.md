@@ -10,7 +10,7 @@ G0 收束状态与治理文档最终对齐
 
 ## 状态
 
-草案
+已完成
 
 ## 日期
 
@@ -112,8 +112,18 @@ G0 主要治理修复已经完成，CR-005、CR-006、CR-007 均已闭环。当�
 
 ## 最终结果
 
-待填写。
+1. 已删除 `docs/_meta/conventions/ai_workflow.md` 中 G0 专用章节，使其恢复为全阶段通用 AI 工作流规范；
+2. 已保留对话式 AI、Codex / Agent、人工、Git 分工，以及 Plan -> Execute -> Verify -> Commit 工作流；
+3. 已在 `docs/_meta/conventions/document_governance.md` 中补充 CR 流程状态说明；
+4. 已明确 CR 的“草案 / 已批准 / 执行中 / 已完成 / 已取消”属于 CR 生命周期状态，不等同于普通文档内容状态；
+5. 已更新 `AGENTS.md`、`docs/DOC_INDEX.md`、`README.md`、`CHANGELOG.md` 中与 G0 收束状态相关的过期表述；
+6. 已在 `CHANGELOG.md` 的 Unreleased 中补充 CR-004 至 CR-008 的 G0 收束结果；
+7. 未修改任何 DEC 文件；
+8. 未修改 `docs/00_definition/`、`docs/01_planning/`、`docs/02_architecture/` 等业务规划或架构文件；
+9. 未创建未来目录；
+10. 未创建 P1.3 BOM 或采购清单；
+11. 本 CR 完成后，项目可回到 P1.3 硬件方案与采购主线。
 
 ## 关联 commit
 
-未提交。
+- ebd2b28 docs(governance): finalize G0 governance cleanup
