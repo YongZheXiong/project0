@@ -10,9 +10,14 @@ All notable changes to Project-0 will be documented in this file.
 - 新增 `docs/_meta/conventions/ai_workflow.md` 与 `docs/_meta/conventions/document_governance.md`，用于约束 AI 工作流和文档治理规则。
 
 ### Changed
-- README 已对齐当前 `governance` 分支治理状态和文档导航。
+- README 已对齐 G0 核心治理收束完成状态和文档导航。
 - DEC-013 已废弃，人工接管链路已按 DEC-018 对齐。
 - `AGENTS.md`、`docs/DOC_INDEX.md`、`README.md`、`CHANGELOG.md` 已按 CR-003 对齐治理入口。
+- 按 CR-004 完成全项目已有文件只读审计，并输出 G0 已有文件审计报告。
+- 按 CR-005 统一 P1.3 硬件命名基线。
+- 按 CR-006 修正 `file_structure_design_proposal.md` 定性，明确其不是当前真实目录树。
+- 按 CR-007 收口 P1 规划与接口骨架状态。
+- 按 CR-008 完成最终治理文档状态收尾，当前主线回到 P1.3 硬件方案与采购。
 
 
 ### Deprecated
