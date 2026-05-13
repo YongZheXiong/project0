@@ -2,7 +2,7 @@
 
 ## 1. 文件作用
 
-本文档是项目0当前阶段的文档索引与依赖关系说明文件，面向 P1.3 硬件方案与采购。
+本文档是 Project0 全阶段文档索引与依赖关系说明文件，当前版本重点服务 P1.3。
 
 它只负责回答四件事：
 1. 项目0当前主要文档有哪些；
@@ -12,7 +12,7 @@
 
 本文档不替代任何正式设计文档，也不替代 DEC、README、CHANGELOG 或实现层文件。它只做治理导航，不替任何技术结论下最终判定。
 
-当前阶段不应把迭代二增强提前写成迭代一硬要求，也不应把规划方案当成当前真实目录。
+当前版本不应把迭代二增强提前写成迭代一硬要求，也不应把规划方案当成当前真实目录。
 
 ---
 
@@ -26,11 +26,13 @@
 | `CHANGELOG.md` | 版本变更记录 | 不是设计事实源，只记录版本变化 |
 | `AGENTS.md` | 协作规则 | 约束 AI / 人类工作方式，不定义项目事实 |
 | `docs/DOC_INDEX.md` | 文档索引 | 治理导航，不是事实源 |
-| `docs/_meta/` | 治理元数据 | 已建立治理元数据目录，`conventions/` 已包含 AI 工作流和文档治理规则，`audit/` 已包含 G0 已有文件审计报告；该审计报告是历史依据 / 历史快照，不回写新结论；`templates/` 可作为后续模板目录使用 |
+| `process/change_requests/` | CR 机制目录 | 全阶段跨文件变更管理入口，用于记录变更原因、范围、风险、验证和结果 |
+| `docs/_meta/` | 治理元数据目录 | 包含治理规则、模板、审计材料和历史说明，不作为项目技术事实源 |
 | `docs/_meta/conventions/ai_workflow.md` | AI 工作流规范 | 规定对话式 AI、Codex / Agent、人工决策和 Git 的分工 |
 | `docs/_meta/conventions/document_governance.md` | 文档治理规范 | 规定文档事实源、颗粒度、状态、引用和修改边界 |
+| `docs/_meta/governance/G0_governance_baseline_closure.md` | G0 历史说明 | 说明 G0 治理基线收束的含义、边界和后续承接方式，不把 G0 定义为 P0-P10 正式阶段 |
 
-补充说明：`process/change_requests/` 已建立最小 CR 机制，包含 `README.md`、`CR-000_template.md` 以及 `CR-001` 至 `CR-008` 等变更记录。`process/weekly_log/` 与 `process/learning_notes/` 属于过程记录与学习沉淀，不是事实源。
+补充说明：`docs/_meta/audit/` 中的 G0 已有文件审计报告作为历史依据 / 历史快照保留，不回写新结论；`process/change_requests/` 中的 CR 文件按机制记录具体变更，不替代 DEC 或正式设计文档。`process/weekly_log/` 与 `process/learning_notes/` 属于过程记录与学习沉淀，不是事实源。
 
 ### 2.2 项目定义层 `docs/00_definition/`
 
@@ -164,8 +166,6 @@
 | `process/decisions/DEC-009-semantic_location_owned_by_ap_manager.md` | 空文件 | 待补齐与确认 |
 | `process/decisions/DEC-013-manual_takeover_and_estop.md` | 废弃 | 已废弃，不再作为人工接管、急停或电源架构事实源 |
 | `process/decisions/DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
-| `docs/_meta/` | 已建立治理元数据目录 | `conventions/` 已包含 `ai_workflow.md` 与 `document_governance.md`；`audit/` 已包含 G0 已有文件审计报告，该报告作为历史依据 / 历史快照保留，不回写新结论；`templates/` 可作为后续模板目录使用 |
-| `process/change_requests/` | 已建立最小 CR 机制 | 包含 `README.md`、`CR-000_template.md` 以及 `CR-001` 至 `CR-008` 等变更记录 |
 
 ---
 
@@ -196,11 +196,8 @@
 
 ---
 
-## 7. 当前治理状态与后续待办
+## 7. 当前治理状态摘要
 
-1. G0 已正式收束，已形成可支撑 P1.3 回归和后续治理的最小治理基线；G0 结束不等于所有遗留问题清零；
-2. G0 已有文件审计报告保留为历史依据 / 历史快照，不回写新结论；
-3. 后续跨文件治理修改继续使用现有 `process/change_requests/` / 阶段任务机制管理，不新增专门的 G0 遗留治理跟踪文件；
-4. 占位文件、异常 DEC、低完成度文件仍按本索引标注理解，不替上游事实源下结论；
-5. 对需要人工确认的 DEC 异常保持只读复核，不在索引中替 DEC 下结论；
-6. 当前主线回到 P1.3，后续再按批准范围推进 `procurement_list.md` 与 `hardware/bom.csv`。
+1. G0 已正式收束，历史说明见 `docs/_meta/governance/G0_governance_baseline_closure.md`；G0 结束不等于所有遗留问题清零。
+2. 后续跨文件治理修改继续使用 `process/change_requests/` 和阶段任务机制管理；本文档不承担任务计划职责。
+3. 当前主线回到 P1.3，BOM、采购清单和其他阶段输出以对应批准文件和阶段任务为准。
