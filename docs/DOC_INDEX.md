@@ -26,7 +26,7 @@
 | `CHANGELOG.md` | 版本变更记录 | 不是设计事实源，只记录版本变化 |
 | `AGENTS.md` | 协作规则 | 约束 AI / 人类工作方式，不定义项目事实 |
 | `docs/DOC_INDEX.md` | 文档索引 | 治理导航，不是事实源 |
-| `docs/_meta/` | 治理元数据 | 已建立治理元数据目录，`conventions/` 已包含 AI 工作流和文档治理规则，`audit/` 已包含 G0 已有文件审计报告，`templates/` 可作为后续模板目录使用 |
+| `docs/_meta/` | 治理元数据 | 已建立治理元数据目录，`conventions/` 已包含 AI 工作流和文档治理规则，`audit/` 已包含 G0 已有文件审计报告；该审计报告是历史依据 / 历史快照，不回写新结论；`templates/` 可作为后续模板目录使用 |
 | `docs/_meta/conventions/ai_workflow.md` | AI 工作流规范 | 规定对话式 AI、Codex / Agent、人工决策和 Git 的分工 |
 | `docs/_meta/conventions/document_governance.md` | 文档治理规范 | 规定文档事实源、颗粒度、状态、引用和修改边界 |
 
@@ -164,7 +164,7 @@
 | `process/decisions/DEC-009-semantic_location_owned_by_ap_manager.md` | 空文件 | 待补齐与确认 |
 | `process/decisions/DEC-013-manual_takeover_and_estop.md` | 废弃 | 已废弃，不再作为人工接管、急停或电源架构事实源 |
 | `process/decisions/DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
-| `docs/_meta/` | 已建立治理元数据目录 | `conventions/` 已包含 `ai_workflow.md` 与 `document_governance.md`；`audit/` 已包含 G0 已有文件审计报告；`templates/` 可作为后续模板目录使用 |
+| `docs/_meta/` | 已建立治理元数据目录 | `conventions/` 已包含 `ai_workflow.md` 与 `document_governance.md`；`audit/` 已包含 G0 已有文件审计报告，该报告作为历史依据 / 历史快照保留，不回写新结论；`templates/` 可作为后续模板目录使用 |
 | `process/change_requests/` | 已建立最小 CR 机制 | 包含 `README.md`、`CR-000_template.md` 以及 `CR-001` 至 `CR-008` 等变更记录 |
 
 ---
@@ -198,7 +198,9 @@
 
 ## 7. 当前治理状态与后续待办
 
-1. G0 核心治理收束已完成，G0 已有文件审计报告保留为后续复核依据；
-2. 后续跨文件治理修改继续使用 `process/change_requests/` 管理；
-3. 对需要人工确认的 DEC 异常保持只读复核，不在索引中替 DEC 下结论；
-4. 当前主线回到 P1.3，后续再按批准范围推进 `procurement_list.md` 与 `hardware/bom.csv`。
+1. G0 已正式收束，已形成可支撑 P1.3 回归和后续治理的最小治理基线；G0 结束不等于所有遗留问题清零；
+2. G0 已有文件审计报告保留为历史依据 / 历史快照，不回写新结论；
+3. 后续跨文件治理修改继续使用现有 `process/change_requests/` / 阶段任务机制管理，不新增专门的 G0 遗留治理跟踪文件；
+4. 占位文件、异常 DEC、低完成度文件仍按本索引标注理解，不替上游事实源下结论；
+5. 对需要人工确认的 DEC 异常保持只读复核，不在索引中替 DEC 下结论；
+6. 当前主线回到 P1.3，后续再按批准范围推进 `procurement_list.md` 与 `hardware/bom.csv`。
