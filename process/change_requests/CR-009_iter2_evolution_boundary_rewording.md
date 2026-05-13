@@ -10,7 +10,7 @@ CR-009
 
 ## 状态
 
-草案
+已完成
 
 ## 日期
 
@@ -80,7 +80,7 @@ CR-009
    - C-19 至 C-22：作者名、格式、结构整理；
    - C-23：CR README 泛化；
    - C-24：同步型文件影响检查。
-4. 当前 CR-009 仍为草案；后续修改 DEC、Planning 或 Architecture 前，必须完成影响范围确认并获得人工批准。
+4. 本轮 Plan 阶段确认 CR-009 当时仍为草案；后续修改 DEC、Planning 或 Architecture 前，必须完成影响范围确认并获得人工批准。
 5. 本轮只读检索发现，除主要候选文件外，部分 DEC、系统架构和计算通信架构文件也存在相关旧口径，需要作为候选影响范围记录，但不自动批准修改。
 
 ## 影响范围初步清单
@@ -320,4 +320,53 @@ CR-009
 
 ## 最终结果
 
-待执行后填写。
+CR-009 已完成核心修改并提交：
+
+1. `370b6f98b5d0a5d237cddb2e437c28656eaaba53`
+   `docs(cr-009): reword iteration 2 evolution boundary`
+
+已修改文件：
+
+1. `process/decisions/DEC-001-iteration_roadmap_no_rewrite.md`
+2. `process/decisions/DEC-005-semantic_nav_yaml_rule_based.md`
+3. `docs/01_planning/iter1_function_list.md`
+4. `docs/02_architecture/software_architecture.md`
+
+已完成 / 已处理项：
+
+1. C-04 已完成：迭代二演进边界旧口径已通过 CR-009 调整。
+2. C-05 已完成：`process/decisions/DEC-001-iteration_roadmap_no_rewrite.md` 已从绝对化“不推翻重来 / 只能增量增强”口径调整为“保护已验收平台基线 + 受控演进”口径。
+3. C-06 已完成：`process/decisions/DEC-005-semantic_nav_yaml_rule_based.md` 已保留 YAML + 规则匹配作为迭代一基线，同时放宽后续研究增强的受控演进边界。
+4. C-07 已完成：`docs/01_planning/iter1_function_list.md` 已同步 CR-009 新口径。
+5. C-08 已完成：`docs/02_architecture/software_architecture.md` 已同步软件演进边界。
+6. C-10 已处理为排除边界：`docs/02_architecture/hardware_architecture.md` 不纳入 CR-009 修改。
+
+C-09 部分完成 / 残留待后续确认：
+
+1. 本轮 CR-009 只完成第一批核心同步。
+2. `docs/02_architecture/system_architecture.md`、`docs/02_architecture/compute_comm_architecture.md`、`process/decisions/DEC-002-base_communication_uart_binary_protocol.md`、`process/decisions/DEC-004-navigation_nav2_navfn_rpp.md`、`process/decisions/DEC-006-task_manager_behaviortree_cpp.md` 等残留命中未在本轮修改。
+3. 后续如需处理，应先做单独只读分类，并由人工决定是否进入新 CR 或后续批次。
+4. 不得自动扩大 CR-009 的修改范围。
+
+明确排除 / 未修改文件：
+
+1. `docs/02_architecture/system_architecture.md`
+2. `docs/02_architecture/compute_comm_architecture.md`
+3. `docs/02_architecture/hardware_architecture.md`
+4. `process/decisions/DEC-002-base_communication_uart_binary_protocol.md`
+5. `process/decisions/DEC-004-navigation_nav2_navfn_rpp.md`
+6. `process/decisions/DEC-006-task_manager_behaviortree_cpp.md`
+7. `README.md`
+8. `AGENTS.md`
+9. `CHANGELOG.md`
+10. `docs/DOC_INDEX.md`
+11. `process/change_requests/README.md`
+12. 硬件、BOM、采购、源码、固件、部署、Docker、服务文件。
+
+边界说明：
+
+1. CR-009 不允许无边界重构。
+2. 开放集、复杂语义理解、研究增强、上层算法实验等方向只作为后续可在 CR / DEC 支撑下受控演进的候选方向。
+3. 上述方向不得写成当前已完成能力。
+4. 上述方向不得写成当前阶段必须实现项。
+5. CR-009 不得削弱安全、人工接管、急停、系统模式仲裁、电源边界、通信主链路和已验收平台基线。
