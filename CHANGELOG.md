@@ -4,33 +4,7 @@ All notable changes to Project-0 will be documented in this file.
 
 ## [Unreleased]
 
-### Added
-- 新增 `docs/DOC_INDEX.md` 作为文档索引与依赖导航入口。
-- 新增 `process/change_requests/` 变更请求机制，用于管理跨文件修改。
-- 新增 `docs/_meta/conventions/ai_workflow.md` 与 `docs/_meta/conventions/document_governance.md`，用于约束 AI 工作流和文档治理规则。
-
-### Changed
-- README 已对齐 G0 核心治理收束完成状态和文档导航。
-- DEC-013 已废弃，人工接管链路已按 DEC-018 对齐。
-- `AGENTS.md`、`docs/DOC_INDEX.md`、`README.md`、`CHANGELOG.md` 已按 CR-003 对齐治理入口。
-- 按 CR-004 完成全项目已有文件只读审计，并输出 G0 已有文件审计报告。
-- 按 CR-005 统一 P1.3 硬件命名基线。
-- 按 CR-006 修正 `file_structure_design_proposal.md` 定性，明确其不是当前真实目录树。
-- 按 CR-007 收口 P1 规划与接口骨架状态。
-- 按 CR-008 完成最终治理文档状态收尾，当前主线回到 P1.3 硬件方案与采购。
-
-
-### Deprecated
--
-
-### Removed
--
-
-### Fixed
--
-
-### Security
--
+暂无未发布变更。
 
 ---
 
@@ -113,4 +87,24 @@ All notable changes to Project-0 will be documented in this file.
 
 ---
 
-## [0.2.5] - 2026-5-
+## [0.2.5] - 2026-05-13
+
+### Added
+- 新增 `docs/DOC_INDEX.md` 作为文档索引与依赖导航入口。
+- 新增 `process/change_requests/` 变更请求机制，用于管理跨文件修改。
+- 新增 `docs/_meta/conventions/ai_workflow.md` 与 `docs/_meta/conventions/document_governance.md`，用于约束 AI 工作流和文档治理规则。
+
+### Changed
+- 发布版本 `v0.2.5`，G0 正式收束。
+- G0 已达到可收束的最小治理基线，当前主线回到 P1.3 硬件方案与采购。
+- 明确 G0 结束不等于所有遗留问题清零，遗留问题后续按现有 CR / 阶段任务机制承接，不新增专门的后续治理跟踪文件。
+- README 已对齐 G0 正式收束状态和文档导航。
+- DEC-013 已废弃，人工接管链路已按 DEC-018 对齐。
+- `AGENTS.md`、`docs/DOC_INDEX.md`、`README.md`、`CHANGELOG.md` 已按 CR-003 对齐治理入口。
+- 按 CR-004 完成全项目已有文件只读审计，并输出 G0 已有文件审计报告。
+- 按 CR-005 统一 P1.3 硬件命名基线。
+- 按 CR-006 修正 `file_structure_design_proposal.md` 定性，明确其不是当前真实目录树。
+- 按 CR-007 收口 P1 规划与接口骨架状态。
+- 按 CR-008 完成最终治理文档状态收尾，当前主线回到 P1.3 硬件方案与采购。
+- 本版本不修改 DEC，不修改 Architecture 技术事实，不做硬件采购决策，不输出 BOM 或采购清单。
+

@@ -117,12 +117,21 @@ G0 主要治理修复已经完成，CR-005、CR-006、CR-007 均已闭环。当�
 3. 已在 `docs/_meta/conventions/document_governance.md` 中补充 CR 流程状态说明；
 4. 已明确 CR 的“草案 / 已批准 / 执行中 / 已完成 / 已取消”属于 CR 生命周期状态，不等同于普通文档内容状态；
 5. 已更新 `AGENTS.md`、`docs/DOC_INDEX.md`、`README.md`、`CHANGELOG.md` 中与 G0 收束状态相关的过期表述；
-6. 已在 `CHANGELOG.md` 的 Unreleased 中补充 CR-004 至 CR-008 的 G0 收束结果；
+6. 已在 `CHANGELOG.md` 中记录 CR-004 至 CR-008 的 G0 收束结果，并在 2026-05-13 将其发布为 `v0.2.5`；
 7. 未修改任何 DEC 文件；
 8. 未修改 `docs/00_definition/`、`docs/01_planning/`、`docs/02_architecture/` 等业务规划或架构文件；
 9. 未创建未来目录；
 10. 未创建 P1.3 BOM 或采购清单；
 11. 本 CR 完成后，项目可回到 P1.3 硬件方案与采购主线。
+12. 2026-05-13 本次引用 CR-008 继续执行，完成 `v0.2.5` 正式发布口径收口；
+13. G0 已正式收束，已形成可支撑 P1.3 回归和后续治理的最小治理基线；
+14. 当前主线回到 P1.3 硬件方案与采购；
+15. G0 结束不等于所有遗留问题清零，遗留问题后续按现有 CR / 阶段任务机制承接；
+16. 不新增专门的后续治理跟踪文件；
+17. 未修改任何 DEC 文件；
+18. 未修改 Architecture 技术事实；
+19. 未做硬件采购决策，未创建 BOM 或采购清单；
+20. 未跟踪的 `process/change_requests/CR-009_iter2_evolution_boundary_rewording.md` 留到下一治理阶段补充完整，不纳入本次 G0 正式发布范围。
 
 ## 关联 commit
 
