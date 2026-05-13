@@ -2,7 +2,7 @@
 
 ## 状态
 
-Draft
+已完成
 
 ## 背景
 
@@ -142,4 +142,39 @@ G0 已收束，v0.2.5 已发布，项目主线回到 P1.3。下一轮治理发�
 
 ## 当前结果
 
-待执行后填写。
+CR-010 已完成三次提交：
+
+1. `22c327dae50e351ac3a20513f920b1045f01d2b3`
+   `docs(cr): add CR-010 governance entry generalization draft`
+2. `f4a1e2f77ecfae289e21120f63829f7bbed568f1`
+   `docs(cr-010): generalize governance entry files`
+3. `8ce357ad3fa58cf09f7e3a7785be95d27e587690`
+   `docs(cr-010): sync agents and changelog governance entries`
+
+已完成项：
+
+1. C-01 已完成：新增 `docs/_meta/governance/G0_governance_baseline_closure.md`，用于承接 G0 治理基线收束的历史说明。
+2. C-03 已完成：`docs/_meta/conventions/document_governance.md` 已将 G0 专章泛化为全阶段已有文件规范化收束原则。
+3. C-12 已完成：`docs/DOC_INDEX.md` 已修正 `docs/_meta/` 与 `process/change_requests/` 的分类。
+4. C-13 已完成：`docs/DOC_INDEX.md` 已定位为 Project0 全阶段文档索引与依赖关系说明文件，当前版本重点服务 P1.3。
+5. C-14 已完成：`docs/DOC_INDEX.md` 当前治理状态已压缩为摘要，不承担详细任务计划。
+6. C-17 已处理：`AGENTS.md` 已轻量同步 G0 历史说明入口和当前主线边界。
+7. C-23 已完成：`process/change_requests/README.md` 已泛化为全阶段 CR 机制说明。
+8. C-24 已完成：`AGENTS.md`、`CHANGELOG.md`、`docs/DOC_INDEX.md` 等同步文件已按实际修改完成必要同步。
+
+暂缓项：
+
+1. C-02 未完成。
+2. `docs/_meta/conventions/ai_workflow.md` 未拆分、未重命名。
+3. 本轮保持 `docs/_meta/conventions/ai_workflow.md` 现状。
+4. 后续如需拆分为 `ai_collaboration_rules.md` + 操作化 `ai_workflow.md`，应单独批次或单独 CR 处理。
+5. 不得把 C-02 记录为已完成。
+
+边界说明：
+
+1. CR-010 不定义技术事实。
+2. CR-010 不替代 DEC。
+3. CR-010 不修改 Architecture / Planning / Definition。
+4. CR-010 不进入硬件、BOM、采购、源码、固件、部署、Docker 或服务。
+5. G0 不是 P0-P10 正式阶段。
+6. G0 只是治理基线收束工作包 / 历史说明。
