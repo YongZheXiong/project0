@@ -4,7 +4,9 @@ All notable changes to Project-0 will be documented in this file.
 
 ## [Unreleased]
 
-暂无未发布变更。
+### Changed
+- 按 CR-010 泛化治理入口文件说明，新增 G0 governance baseline closure 历史说明入口。
+- 轻量同步 `AGENTS.md` 中的 G0 历史说明入口，并记录 CR 机制和文档索引相关治理说明更新。
 
 ---
 
