@@ -26,11 +26,13 @@ CR-013 选择的处理路线为：
 
 新建替代 DEC，DEC-009 保留异常说明。
 
-候选替代 DEC 草案为：
+替代 DEC 为：
 
 `process/decisions/DEC-022-semantic_location_ownership_boundary.md`
 
-在 DEC-022 被人工确认前，DEC-022 也不得作为有效技术事实源使用。
+DEC-022 已确认，并承接语义位置归属与 p0_map_manager 边界相关决策。
+
+DEC-009 仍仅保留为异常占位 / 非有效事实源，不作为语义位置归属、AP Manager 或 p0_map_manager 边界的有效技术事实源。
 
 ## 关联记录
 
