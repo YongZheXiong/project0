@@ -108,9 +108,9 @@ CR-007 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字
 | `p0_base_bridge` | 接收底盘控制指令，发布底盘反馈、通信状态、运动状态 |
 | `p0_mapping` | 消费建图传感器数据，发布建图状态，调用地图保存接口 |
 | `p0_localization` | 消费定位传感器数据与地图资源，发布定位状态 |
-| `p0_map_manager` | 提供地图保存/加载/当前地图信息/语义位置查询接口 |
+| `p0_map_manager` | 提供地图保存/加载/当前地图信息，并承接迭代一语义位置表 / 语义位置数据与语义位置查询接口 |
 | `p0_navigation` | 接收导航目标，发布导航状态/路径/事件，提供导航 action |
-| `p0_semantic_nav` | 接收语义目标输入，调用语义位置查询接口，输出导航目标或语义解析结果 |
+| `p0_semantic_nav` | 接收语义目标输入，通过语义位置查询接口获取位姿或区域，输出导航目标或语义解析结果 |
 | `p0_task_manager` | 发起导航任务，维护任务状态，订阅安全事件与导航状态 |
 | `p0_safety_manager` | 接收多源状态输入，发布安全事件，必要时触发安全处置接口 |
 | `p0_system_manager` | 提供模式切换、自检、故障复位等服务，聚合系统状态 |
@@ -183,7 +183,7 @@ CR-007 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字
 | --- | --- | --- | --- | --- | --- | --- |
 | `/p0/map/save` | `p0_interfaces/SaveMap` | `p0_map_manager` | `p0_mapping`, 运维入口 | 保存当前地图 | 建议实现 | 软件架构指出建图通过请求响应型接口与地图管理协作完成地图保存。 |
 | `/p0/map/load` | `p0_interfaces/LoadMap` | `p0_map_manager` | `p0_localization`, `p0_system_manager` | 加载指定地图 | 必须实现 | 软件架构指出地图管理向定位提供地图加载资源。 |
-| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | `p0_map_manager` | `p0_semantic_nav` | 查询语义位置对应空间目标 | 必须实现 | P1 骨架口径采用 `QuerySemanticPose.srv`；`GetSemanticPose.srv` 仅作为历史备选命名待淘汰，不代表 V1.0 最终冻结。 |
+| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | `p0_map_manager` | `p0_semantic_nav` | 查询语义位置对应空间目标 | 必须实现 | DEC-022 确认其作为迭代一基线的语义位置查询边界；P1 骨架口径采用 `QuerySemanticPose.srv`，`GetSemanticPose.srv` 仅作为历史备选命名待淘汰，不代表 V1.0 最终冻结。 |
 
 ## 6.2 系统管理服务
 
@@ -346,7 +346,7 @@ CR-007 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字
 
 以下内容在 CR-007 后形成 P1 骨架口径，但仍不是 V1.0 最终冻结：
 
-1. 语义位置查询服务采用 `QuerySemanticPose.srv` 作为 P1 骨架口径，`GetSemanticPose.srv` 标注为历史备选命名 / 待淘汰；
+1. 语义位置查询服务在迭代一基线中由 `p0_map_manager` 提供、由 `p0_semantic_nav` 调用；P1 骨架口径采用 `QuerySemanticPose.srv`，`GetSemanticPose.srv` 标注为历史备选命名 / 待淘汰；
 2. `TriggerEmergencyStop.srv` 的 P1 骨架主归属为 `p0_safety_manager`，用于软件急停触发与安全仲裁；`p0_system_manager` 可作为系统模式联动方或调用方，解除 / 复位语义仍待 P2-P5 联调确认；
 3. `/p0/navigation/go_to_pose` 是否直接采用 Nav2 标准动作，还是由 `p0_navigation` 再封装一层；
 4. `NavigateToSemantic.action` 的 P1 骨架倾向由 `p0_task_manager` 作为任务编排方，调用 `p0_semantic_nav` 与 `p0_navigation`；最终 action 命名空间、服务方归属和字段结构仍待 P2-P5 联调确认；
