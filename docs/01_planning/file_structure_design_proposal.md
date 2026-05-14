@@ -328,18 +328,18 @@ project0/
 
 | 目录 | 说明 |
 |------|------|
-| `docs/00_definition/` | 锁定六份定义文件 [3] |
-| `docs/01_planning/` | 功能清单、WBS、采购清单 [5] |
-| `docs/02_architecture/` | 系统架构设计 [5] |
-| `docs/04_deployment/` | 环境部署说明 [5] |
+| `docs/00_definition/` | 锁定六份定义文件 |
+| `docs/01_planning/` | 功能清单、WBS、采购清单 |
+| `docs/02_architecture/` | 系统架构设计 |
+| `docs/04_deployment/` | 环境部署说明 |
 | `firmware/` | STM32工程骨架 |
 | `src/` | ROS2 workspace骨架（至少bringup、base、msgs）|
 | `config/` | 全局配置目录 |
 | `scripts/` | 基础脚本 |
-| `process/decisions/` | 开始记录决策 [3] |
-| `process/learning_notes/` | 开始记录学习 [3] |
+| `process/decisions/` | 开始记录决策 |
+| `process/learning_notes/` | 开始记录学习 |
 | `process/weekly_log/` | 开始周记 |
-| `simulation/` | 仿真基础环境 [5] |
+| `simulation/` | 仿真基础环境 |
 | `README.md` `.gitignore` `CHANGELOG.md` | 仓库基础文件 |
 
 ### P2-P6 逐步建立
@@ -355,26 +355,26 @@ project0/
 | `src/project0_monitor/` | P6 |
 | `docs/03_design/` | 未来规划目录，P2起逐模块补充 |
 | `docs/05_calibration/` | 未来规划目录，P2-P3 |
-| `docs/06_testing/` | 未来规划目录，P2起逐阶段补充 [12] |
+| `docs/06_testing/` | 未来规划目录，P2起逐阶段补充 |
 | `data/` | P2起首次真机运行时建立 |
 | `experiments/` | P2起首个实验时建立 |
 | `process/problem_log/` | P2起首次遇到问题时 |
 | `process/failure_cases/` | 有失败案例时 |
 | `process/retrospectives/` | 每阶段结束时 |
 | `hardware/photos/` | P2组装时 |
-| `reports/iter1_platform_report/` | P6 [12][13] |
-| `presentation/screenshots/` | P2起采集 [3] |
+| `reports/iter1_platform_report/` | P6 |
+| `presentation/screenshots/` | P2起采集 |
 
 ### 迭代二再建立（P7+）
 
 | 目录 | 说明 |
 |------|------|
-| `docs/07_iter2/` | 未来规划目录，增强方案、实验设计、基线数据 [11] |
+| `docs/07_iter2/` | 未来规划目录，增强方案、实验设计、基线数据 |
 | `reports/iter2_enhancement_report/` | P8-P9 |
-| `reports/final_report/` | P10 [1] |
-| `presentation/defense_ppt/` | P10 [1] |
+| `reports/final_report/` | P10 |
+| `presentation/defense_ppt/` | P10 |
 | `presentation/demo_videos/` | P10最终版（过程中素材先放screenshots）|
-| `presentation/defense_qa.md` | P10 [1][7] |
+| `presentation/defense_qa.md` | P10 |
 
 ---
 
@@ -382,18 +382,18 @@ project0/
 
 | 一级目录 | 放什么 |
 |----------|--------|
-| `docs/` | 所有非代码文档：定义、规划、架构、设计、部署、标定、测试 [2][7] |
-| `hardware/` | BOM、接线图PDF、机械图、实物照片 [5] |
-| `firmware/` | STM32全部固件代码，CubeMX工程 [15] |
-| `src/` | ROS2所有功能包，按职责拆包 [5][15] |
-| `config/` | 全局参数YAML/Lua，与launch配合 [9] |
-| `scripts/` | Shell/Python工具脚本，启动、自检、数据分析 [9] |
-| `data/` | rosbag、地图文件、日志、标定数据（大文件）[9] |
-| `experiments/` | 按实验编号组织，每个实验含设计-数据-结果-结论 [7] |
-| `simulation/` | Gazebo世界、模型、仿真launch [5] |
-| `reports/` | 迭代一报告、迭代二报告、总报告 [1][13] |
-| `presentation/` | 视频、PPT、一页纸、答辩QA、亮点总结 [1][7] |
-| `process/` | 决策记录、问题日志、学习笔记、失败案例、复盘、周记 [2][3] |
+| `docs/` | 所有非代码文档：定义、规划、架构、设计、部署、标定、测试 |
+| `hardware/` | BOM、接线图PDF、机械图、实物照片 |
+| `firmware/` | STM32全部固件代码，CubeMX工程 |
+| `src/` | ROS2所有功能包，按职责拆包 |
+| `config/` | 全局参数YAML/Lua，与launch配合 |
+| `scripts/` | Shell/Python工具脚本，启动、自检、数据分析 |
+| `data/` | rosbag、地图文件、日志、标定数据（大文件） |
+| `experiments/` | 按实验编号组织，每个实验含设计-数据-结果-结论 |
+| `simulation/` | Gazebo世界、模型、仿真launch |
+| `reports/` | 迭代一报告、迭代二报告、总报告 |
+| `presentation/` | 视频、PPT、一页纸、答辩QA、亮点总结 |
+| `process/` | 决策记录、问题日志、学习笔记、失败案例、复盘、周记 |
 
 ---
 
@@ -419,7 +419,7 @@ expXXX_简述/
 ```
 YYYYMMDD_场景_实验编号/
 ```
-示例：`20250715_corridor_3F_exp003/` [9]
+示例：`20250715_corridor_3F_exp003/`
 
 ### 5.4 测试记录命名
 
@@ -463,7 +463,7 @@ YYYYMMDD_阶段_测试内容.md
 
 ### 不入Git（.gitignore + 索引说明）
 
-- `data/bags/` — rosbag文件，通常数GB [9]
+- `data/bags/` — rosbag文件，通常数GB
 - `data/logs/` — 大量运行日志
 - `data/calibration_data/` — 标定原始数据
 - `presentation/demo_videos/` — 视频文件
