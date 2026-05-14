@@ -4,11 +4,6 @@ All notable changes to Project-0 will be documented in this file.
 
 ## [Unreleased]
 
-### Changed
-- 按 CR-010 泛化治理入口文件说明，新增 G0 governance baseline closure 历史说明入口。
-- 轻量同步 `AGENTS.md` 中的 G0 历史说明入口，并记录 CR 机制和文档索引相关治理说明更新。
-- 按 CR-016 拆分 AI 协作规则与操作工作流，新增 `ai_collaboration_rules.md` 并收窄 `ai_workflow.md` 职责。
-
 ---
 
 ## [0.1.0] - 2026-4-17
@@ -111,3 +106,20 @@ All notable changes to Project-0 will be documented in this file.
 - 按 CR-008 完成最终治理文档状态收尾，当前主线回到 P1.3 硬件方案与采购。
 - 本版本不修改 DEC，不修改 Architecture 技术事实，不做硬件采购决策，不输出 BOM 或采购清单。
 
+## [0.2.6] - 2026-05-14
+
+### Added
+- 按 CR-010 新增 `docs/_meta/governance/G0_governance_baseline_closure.md`，作为 G0 治理基线收束的历史说明入口。
+- 按 CR-013 新建 `DEC-022-semantic_location_ownership_boundary.md` 作为 DEC-009 的替代 DEC 草案，并在后续按 CR-014 转为确认。
+- 按 CR-016 新增 `docs/_meta/conventions/ai_collaboration_rules.md`，用于承载长期 AI 协作规则。
+
+### Changed
+- 按 CR-009 调整迭代二演进边界口径：保护已验收平台基线，同时允许研究增强模块在 CR / DEC 支撑下受控演进。
+- 按 CR-009 同步更新 `DEC-001`、`DEC-005`、`iter1_function_list.md` 和 `software_architecture.md` 中的相关绝对化旧口径。
+- 按 CR-010 泛化治理入口与规则文件定位，压缩 G0 阶段性表述，并将文档索引与 CR 机制说明收敛为全阶段口径。
+- 按 CR-011 完成一批文档卫生与格式整理，包括作者英文名统一、定义层文档 Markdown 结构规范化，以及残留 citation marker 清理。
+- 按 CR-012 修正 `DEC-004` 与 `DEC-006` 中迭代二旧口径残留，使其与 CR-009 的受控演进口径一致。
+- 按 CR-013 将 `DEC-009` 从空文件治理为“异常占位 / 非有效事实源”，保留历史编号与追溯关系。
+- 按 CR-014 确认 `DEC-022`：语义位置表、语义位置数据与语义查询能力归属 `p0_map_manager`，`p0_semantic_nav` 通过查询接口获取位姿或区域，且不推翻 `DEC-005`。
+- 按 CR-015 统一部分 DEC 文件的元信息字段、日期展示和正文结构格式，不改变技术结论、状态含义或替代关系。
+- 按 CR-016 拆分 AI 协作规则与操作工作流，收窄 `ai_workflow.md` 职责，并同步 `AGENTS.md`、`README.md`、`docs/DOC_INDEX.md` 等入口引用。
