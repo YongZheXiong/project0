@@ -2,7 +2,7 @@
 
 ## 状态
 
-草案
+已完成
 
 ## 背景
 
@@ -107,4 +107,58 @@ Architecture / Interface 是否同步，应先在 CR-014 后续只读 Plan 中�
 
 ## 当前结果
 
-待执行后填写。
+CR-014 草案已创建并提交：
+
+- `a667b47201796400bced88657c24b5afe6690986`
+- `docs(cr): add CR-014 DEC-022 boundary confirmation draft`
+
+CR-014 第一批确认修改已完成并提交：
+
+- `f20faa273a4ce57793f9a1dc567a5ec72fcb8a7a`
+- `docs(cr-014): confirm DEC-022 semantic location boundary`
+
+实际修改文件：
+
+1. `process/decisions/DEC-022-semantic_location_ownership_boundary.md`
+2. `docs/DOC_INDEX.md`
+3. `docs/02_architecture/system_architecture.md`
+4. `docs/02_architecture/interface_definition.md`
+
+DEC-022 已完成以下确认：
+
+1. 将状态从“草案 / 待确认”改为“确认”。
+2. 确认迭代一基线下语义位置表、语义位置数据、语义标签到空间位姿 / 区域映射能力，以及语义位置查询能力归属 `p0_map_manager`。
+3. 确认 `p0_semantic_nav` 在迭代一基线中通过查询接口向 `p0_map_manager` 获取语义位置对应的位姿或区域信息。
+4. 明确不推翻 DEC-005。
+5. 明确不表示实现已完成。
+6. 明确不冻结接口字段、服务命名或命名空间为 V1.0 最终状态。
+7. 明确不确认开放集、LLM、完整语义地图研究路线、任务编排策略或导航执行算法为当前完成能力。
+
+DOC_INDEX 已同步：
+
+1. 仅同步 DEC-022 的索引状态和导航关系。
+2. 未替代 DEC-022 下技术结论。
+
+`system_architecture.md` 已同步：
+
+1. 仅对语义导航模块职责做轻量澄清。
+2. 未改变系统主链路。
+3. 未新增模块。
+4. 未删除语义导航能力。
+5. 未写实现已完成。
+
+`interface_definition.md` 已同步：
+
+1. 仅同步语义位置查询边界和 P1 骨架口径。
+2. 未冻结接口名称、字段结构或命名空间为 V1.0 最终状态。
+3. 未写接口实现已完成。
+
+明确未修改：
+
+1. DEC-005。
+2. DEC-009。
+3. `software_architecture.md`。
+4. `README.md`。
+5. `AGENTS.md`。
+6. `CHANGELOG.md`。
+7. 硬件、BOM、采购、源码、固件、Docker、服务、构建、部署相关文件。
