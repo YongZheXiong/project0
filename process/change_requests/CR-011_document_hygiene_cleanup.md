@@ -2,7 +2,7 @@
 
 ## 状态
 
-已完成 / file_structure_design_proposal.md 历史残留暂缓
+已完成
 
 ## 背景
 
@@ -114,7 +114,7 @@ Project0 已完成 G0 收束，CR-009 与 CR-010 已完成并收束。后续遗�
 
 `docs/01_planning/file_structure_design_proposal.md` 中存在大量历史 `[n]` 残留。
 
-该文件暂不纳入本 CR 第一批执行，建议后续单独确认。若后续处理，应先判断这些标记是否属于历史规划说明、旧 citation 残留或其他合法编号，避免误删历史上下文。
+该文件暂不纳入本 CR 第一批执行。后续已由人工单独确认并完成 marker-only 清理，未修改目录树、路径、文件名、历史说明文字或文件定位。
 
 ## 风险与约束
 
@@ -204,15 +204,27 @@ CR-011 Architecture marker-only 清理已完成并提交：
 
 本次未修改接口、模块、状态、字段语义、表格结构或 Architecture 技术事实。
 
+`docs/01_planning/file_structure_design_proposal.md` 历史 citation marker-only 清理已完成并提交：
+
+1. `caf3dafb36a559194114a738bd3ff377a3e67a51`
+   `docs(cr-011): remove planning citation markers`
+
+本次实际修改文件：
+
+1. `docs/01_planning/file_structure_design_proposal.md`
+
+本次只删除历史 `[n]` citation marker；未修改目录树、路径、文件名、历史说明文字或文件定位，未将该文件改写为当前真实目录说明。
+
 C-11 当前状态：
 
 1. 已完成无效 AI citation / 孤立数字残留的识别和暂缓边界确认。
 2. Architecture marker-only 清理已完成。
-3. `docs/01_planning/file_structure_design_proposal.md` 中历史 `[n]` 残留仍暂缓处理。
-4. 后续如处理 `docs/01_planning/file_structure_design_proposal.md`，应单独只读分类并由人工确认是否新开 CR 或作为后续专批。
-5. C-11 不写为全部历史 citation 残留已清零。
+3. `docs/01_planning/file_structure_design_proposal.md` 历史 `[n]` marker 清理已完成。
+4. C-11 本轮已完成。
 
-残留暂缓事项：
+保留风险说明：
 
-1. `docs/01_planning/file_structure_design_proposal.md` 中历史 `[n]` 残留暂缓处理；后续如处理，应先只读分类，避免误删历史上下文。
-2. 本轮未修改 DEC、CHANGELOG、DOC_INDEX、AGENTS、硬件、BOM、采购、源码、固件、Docker、服务、构建、部署相关文件。
+1. `docs/01_planning/file_structure_design_proposal.md` 仍是历史结构方案 / 非当前真实目录。
+2. 当前真实目录依据仍应以 `README.md`、`docs/DOC_INDEX.md` 和实际仓库 tree 为准。
+3. 不得把 `docs/01_planning/file_structure_design_proposal.md` 反向解释为当前真实目录事实源。
+4. 本轮未修改 DEC、CHANGELOG、DOC_INDEX、AGENTS、硬件、BOM、采购、源码、固件、Docker、服务、构建、部署相关文件。
