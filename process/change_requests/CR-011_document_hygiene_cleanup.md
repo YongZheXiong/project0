@@ -2,7 +2,7 @@
 
 ## 状态
 
-第一批已完成 / 残留暂缓
+已完成 / file_structure_design_proposal.md 历史残留暂缓
 
 ## 背景
 
@@ -108,7 +108,7 @@ Project0 已完成 G0 收束，CR-009 与 CR-010 已完成并收束。后续遗�
 
 `docs/02_architecture/system_architecture.md` 和 `docs/02_architecture/interface_definition.md` 中存在疑似无效 citation marker，例如 `[14]` / `[4]`。
 
-这些 Architecture 文件暂不纳入第一批正文修改。如后续确需处理，必须由人工单独确认，并限定为 marker-only 清理，不得修改接口、模块、状态或技术事实。
+这些 Architecture 文件暂不纳入第一批正文修改。后续已由人工单独确认并完成 marker-only 清理，未修改接口、模块、状态或技术事实。
 
 ### file_structure_design_proposal.md 历史残留
 
@@ -186,15 +186,33 @@ CR-011 第一批正文修改已完成并提交：
 3. C-21 已完成：`docs/00_definition/objective_constraints.md` 已整理为更清晰的 Markdown 结构；未削弱场地、硬件、预算、真机验证、实验时间等客观约束事实。
 4. C-22 已完成：`docs/00_definition/subjective_requirements.md` 已从长段落一级标题整理为标题 + 正文结构；未删减主观需求实质内容。
 
+CR-011 Architecture marker-only 清理已完成并提交：
+
+1. `f7f1d907992568c647cf557708f202410fba4f28`
+   `docs(cr-011): remove architecture citation markers`
+
+本次实际修改文件：
+
+1. `docs/02_architecture/interface_definition.md`
+2. `docs/02_architecture/system_architecture.md`
+
+本次只删除 Architecture 文件中的无效 citation marker：
+
+1. `interface_definition.md` 中的 `[14]`
+2. `interface_definition.md` 中的 `[4]`
+3. `system_architecture.md` 中的 `[14]`
+
+本次未修改接口、模块、状态、字段语义、表格结构或 Architecture 技术事实。
+
 C-11 当前状态：
 
 1. 已完成无效 AI citation / 孤立数字残留的识别和暂缓边界确认。
-2. 未执行 Architecture citation marker 清理。
-3. 未处理 `docs/01_planning/file_structure_design_proposal.md` 历史 `[n]` 残留。
-4. C-11 不写为完全完成，仓库中的全部 citation 残留不写为已经清零。
+2. Architecture marker-only 清理已完成。
+3. `docs/01_planning/file_structure_design_proposal.md` 中历史 `[n]` 残留仍暂缓处理。
+4. 后续如处理 `docs/01_planning/file_structure_design_proposal.md`，应单独只读分类并由人工确认是否新开 CR 或作为后续专批。
+5. C-11 不写为全部历史 citation 残留已清零。
 
 残留暂缓事项：
 
-1. `docs/02_architecture/system_architecture.md` 与 `docs/02_architecture/interface_definition.md` 中疑似无效 citation marker 暂缓处理；后续如处理，必须人工单独确认，并限定为 marker-only 清理，不得修改接口、模块、状态或技术事实。
-2. `docs/01_planning/file_structure_design_proposal.md` 中历史 `[n]` 残留暂缓处理；后续如处理，应先只读分类，避免误删历史上下文。
-3. 本轮未修改 DEC、Architecture、CHANGELOG、DOC_INDEX、AGENTS、硬件、BOM、采购、源码、固件、Docker、服务、构建、部署相关文件。
+1. `docs/01_planning/file_structure_design_proposal.md` 中历史 `[n]` 残留暂缓处理；后续如处理，应先只读分类，避免误删历史上下文。
+2. 本轮未修改 DEC、CHANGELOG、DOC_INDEX、AGENTS、硬件、BOM、采购、源码、固件、Docker、服务、构建、部署相关文件。
