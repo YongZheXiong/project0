@@ -2,7 +2,7 @@
 
 ## 状态
 
-草案
+第一批已完成 / 残留暂缓
 
 ## 背景
 
@@ -162,4 +162,39 @@ Project0 已完成 G0 收束，CR-009 与 CR-010 已完成并收束。后续遗�
 
 ## 当前结果
 
-待执行后填写。
+CR-011 草案已创建并提交：
+
+1. `a6bfda26557a0565b93faf58a4ca77a1d7a5a2dd`
+   `docs(cr): add CR-011 document hygiene cleanup draft`
+
+CR-011 第一批正文修改已完成并提交：
+
+1. `dcfb6f50a852810925fd3b3fc3bea2ee28832979`
+   `docs(cr-011): clean definition document formatting`
+
+第一批实际修改文件：
+
+1. `README.md`
+2. `docs/00_definition/iter1_core_capabilities.md`
+3. `docs/00_definition/objective_constraints.md`
+4. `docs/00_definition/subjective_requirements.md`
+
+第一批完成项：
+
+1. C-19 已完成：`README.md` 中作者英文名已统一为 `Yongzhe Xiong`。
+2. C-20 已完成：`docs/00_definition/iter1_core_capabilities.md` 已删除第六至第十节标题尾部不必要反斜杠，仅做轻量格式修正。
+3. C-21 已完成：`docs/00_definition/objective_constraints.md` 已整理为更清晰的 Markdown 结构；未削弱场地、硬件、预算、真机验证、实验时间等客观约束事实。
+4. C-22 已完成：`docs/00_definition/subjective_requirements.md` 已从长段落一级标题整理为标题 + 正文结构；未删减主观需求实质内容。
+
+C-11 当前状态：
+
+1. 已完成无效 AI citation / 孤立数字残留的识别和暂缓边界确认。
+2. 未执行 Architecture citation marker 清理。
+3. 未处理 `docs/01_planning/file_structure_design_proposal.md` 历史 `[n]` 残留。
+4. C-11 不写为完全完成，仓库中的全部 citation 残留不写为已经清零。
+
+残留暂缓事项：
+
+1. `docs/02_architecture/system_architecture.md` 与 `docs/02_architecture/interface_definition.md` 中疑似无效 citation marker 暂缓处理；后续如处理，必须人工单独确认，并限定为 marker-only 清理，不得修改接口、模块、状态或技术事实。
+2. `docs/01_planning/file_structure_design_proposal.md` 中历史 `[n]` 残留暂缓处理；后续如处理，应先只读分类，避免误删历史上下文。
+3. 本轮未修改 DEC、Architecture、CHANGELOG、DOC_INDEX、AGENTS、硬件、BOM、采购、源码、固件、Docker、服务、构建、部署相关文件。
