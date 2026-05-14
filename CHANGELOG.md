@@ -7,6 +7,7 @@ All notable changes to Project-0 will be documented in this file.
 ### Changed
 - 按 CR-010 泛化治理入口文件说明，新增 G0 governance baseline closure 历史说明入口。
 - 轻量同步 `AGENTS.md` 中的 G0 历史说明入口，并记录 CR 机制和文档索引相关治理说明更新。
+- 按 CR-016 拆分 AI 协作规则与操作工作流，新增 `ai_collaboration_rules.md` 并收窄 `ai_workflow.md` 职责。
 
 ---
 

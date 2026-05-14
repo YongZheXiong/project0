@@ -28,7 +28,8 @@
 
 - [docs/DOC_INDEX.md](docs/DOC_INDEX.md)：文档索引与依赖关系
 - [AGENTS.md](AGENTS.md)：AI / Codex 协作规则
-- [docs/_meta/conventions/ai_workflow.md](docs/_meta/conventions/ai_workflow.md)：AI 工作流规范
+- [docs/_meta/conventions/ai_collaboration_rules.md](docs/_meta/conventions/ai_collaboration_rules.md)：AI 协作规则
+- [docs/_meta/conventions/ai_workflow.md](docs/_meta/conventions/ai_workflow.md)：AI 操作工作流规范
 - [docs/_meta/conventions/document_governance.md](docs/_meta/conventions/document_governance.md)：文档治理规范
 - [process/change_requests/](process/change_requests/)：跨文件变更请求机制
 - [process/decisions/](process/decisions/)：关键决策记录

@@ -7,10 +7,11 @@
 所有 AI、Codex、GPT、Opus、CherryStudio 在参与项目0规划、审查、修改文档或修改代码前，都应先阅读本文件。
 
 本文件承接并指向以下治理入口，不重复完整写入其细则：
-1. `docs/_meta/conventions/ai_workflow.md`：日常 AI 使用流程细则；
-2. `docs/_meta/conventions/document_governance.md`：文档事实源、颗粒度、状态和修改边界细则；
-3. `docs/DOC_INDEX.md`：文档索引与依赖导航；
-4. `process/change_requests/`：跨文件修改入口。
+1. `docs/_meta/conventions/ai_collaboration_rules.md`：AI 协作规则、角色分工、权限边界和 Agent 红线细则；
+2. `docs/_meta/conventions/ai_workflow.md`：日常 AI 操作工作流细则；
+3. `docs/_meta/conventions/document_governance.md`：文档事实源、颗粒度、状态和修改边界细则；
+4. `docs/DOC_INDEX.md`：文档索引与依赖导航；
+5. `process/change_requests/`：跨文件修改入口。
 
 ---
 
@@ -80,7 +81,7 @@ Plan → Execute → Verify → Commit
 
 涉及跨文件修改时，必须先建立或引用 `process/change_requests/` 中的 CR，并遵守 CR 明确的允许修改范围和禁止修改范围。
 
-日常 AI / Codex 使用流程细则以 `docs/_meta/conventions/ai_workflow.md` 为准。
+AI / Codex 协作规则、角色分工、权限边界和 Agent 红线细则以 `docs/_meta/conventions/ai_collaboration_rules.md` 为准；日常操作工作流细则以 `docs/_meta/conventions/ai_workflow.md` 为准。
 
 ---
 
@@ -102,7 +103,7 @@ Plan → Execute → Verify → Commit
 当前最高优先级不是“重写所有文档”，而是：
 
 1. 保护当前 Git 状态；
-2. 使用 AI 工作流规则与文档治理规则约束后续修改；
+2. 使用 AI 协作规则、操作工作流规则与文档治理规则约束后续修改；
 3. 使用变更请求机制管理跨文件变更；
 4. 使用现有 CR / 阶段任务机制承接 G0 遗留问题，但不把 G0 作为当前主线；
 5. 回到 P1.3 主线，完成 BOM 与采购清单。

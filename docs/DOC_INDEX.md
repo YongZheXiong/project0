@@ -28,7 +28,8 @@
 | `docs/DOC_INDEX.md` | 文档索引 | 治理导航，不是事实源 |
 | `process/change_requests/` | CR 机制目录 | 全阶段跨文件变更管理入口，用于记录变更原因、范围、风险、验证和结果 |
 | `docs/_meta/` | 治理元数据目录 | 包含治理规则、模板、审计材料和历史说明，不作为项目技术事实源 |
-| `docs/_meta/conventions/ai_workflow.md` | AI 工作流规范 | 规定对话式 AI、Codex / Agent、人工决策和 Git 的分工 |
+| `docs/_meta/conventions/ai_collaboration_rules.md` | AI 协作规则 | 规定 AI / Codex / Agent / 人工 / Git 分工、权限边界和 Agent 红线 |
+| `docs/_meta/conventions/ai_workflow.md` | AI 工作流规范 | 规定只读审计、修改计划、执行、验证、提交前检查和提示词使用流程 |
 | `docs/_meta/conventions/document_governance.md` | 文档治理规范 | 规定文档事实源、颗粒度、状态、引用和修改边界 |
 | `docs/_meta/governance/G0_governance_baseline_closure.md` | G0 历史说明 | 说明 G0 治理基线收束的含义、边界和后续承接方式，不把 G0 定义为 P0-P10 正式阶段 |
 
@@ -176,16 +177,17 @@
 跨文件修改前，先看这些文件：
 1. `AGENTS.md`
 2. `docs/DOC_INDEX.md`
-3. `docs/_meta/conventions/ai_workflow.md`
-4. `docs/_meta/conventions/document_governance.md`
-5. 相关 `process/change_requests/*`
-6. 相关 `docs/00_definition/*`
-7. 相关 `process/decisions/*`
-8. `docs/01_planning/iter1_function_list.md`
-9. `docs/01_planning/iter1_function_items.md`
-10. 相关 `docs/02_architecture/*`，尤其是 `interface_definition.md`
-11. 若涉及硬件或采购，再看 `hardware/` 与 `docs/04_deployment/`
-12. 若涉及对外摘要或版本说明，再看 `README.md` 与 `CHANGELOG.md`
+3. `docs/_meta/conventions/ai_collaboration_rules.md`
+4. `docs/_meta/conventions/ai_workflow.md`
+5. `docs/_meta/conventions/document_governance.md`
+6. 相关 `process/change_requests/*`
+7. 相关 `docs/00_definition/*`
+8. 相关 `process/decisions/*`
+9. `docs/01_planning/iter1_function_list.md`
+10. `docs/01_planning/iter1_function_items.md`
+11. 相关 `docs/02_architecture/*`，尤其是 `interface_definition.md`
+12. 若涉及硬件或采购，再看 `hardware/` 与 `docs/04_deployment/`
+13. 若涉及对外摘要或版本说明，再看 `README.md` 与 `CHANGELOG.md`
 
 跨文件修改统一遵循：
 
