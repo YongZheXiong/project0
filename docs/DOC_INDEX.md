@@ -91,7 +91,7 @@
 | `DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
 | `DEC-022-semantic_location_ownership_boundary.md` | 确认 | 确认迭代一基线下语义位置表 / 语义位置数据 / 语义查询能力归属 p0_map_manager，p0_semantic_nav 通过查询接口获取位姿或区域；不推翻 DEC-005 |
 
-说明：DEC 文件只能作为决策事实源使用；DEC-009 暂缓复核；DEC-013 已废弃；DEC-014、DEC-018、DEC-019 分别承担电源边界、人工接管、急停事实源。
+说明：DEC 文件只能作为决策事实源使用；DEC-009 已处理为异常占位 / 非有效事实源，语义位置归属边界以 DEC-022 为准；DEC-013 已废弃；DEC-014、DEC-018、DEC-019 分别承担电源边界、人工接管、急停事实源。
 
 ### 2.6 部署 / 实现 / 测试 / 报告层
 
