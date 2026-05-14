@@ -152,7 +152,7 @@ CR-007 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字
 
 | Topic 名称 | 类型 | 发布方 | 订阅方 | 作用 | 迭代一状态 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `/p0/navigation/goal` | 标准位姿目标或自定义目标 | `p0_semantic_nav`, `p0_task_manager` | `p0_navigation` | 导航目标输入 | 必须实现 | 已在建议版接口中出现。[14] |
+| `/p0/navigation/goal` | 标准位姿目标或自定义目标 | `p0_semantic_nav`, `p0_task_manager` | `p0_navigation` | 导航目标输入 | 必须实现 | 已在建议版接口中出现。 |
 | `/p0/navigation/status` | `p0_interfaces/NavigationStatus` | `p0_navigation` | `p0_task_manager`, `p0_safety_manager`, `p0_system_manager`, `p0_data_tools` | 导航执行状态 | 必须实现 | 已在建议版接口中出现。 |
 | `/p0/navigation/path` | 标准路径消息 | `p0_navigation` | `p0_data_tools`, 调试工具 | 当前规划路径 | 建议实现 | 便于调试与记录。 |
 | `/p0/navigation/event` | `p0_interfaces/NavigationEvent` | `p0_navigation` | `p0_task_manager`, `p0_safety_manager`, `p0_data_tools` | 导航异常、重规划、到达等事件 | 建议实现 | 已在建议版接口中出现。 |
@@ -239,7 +239,7 @@ CR-007 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字
 | `ChassisStatus.msg` | 底盘 → 上位机：底盘状态（通信状态、编码器、电压等） | 必须实现 |
 | `SystemStatus.msg` | 系统管理：当前模式、各模块在线状态 | 必须实现 |
 | `SafetyEvent.msg` | 安全管理：安全事件类型、等级、时间戳 | 必须实现 |
-| `LocalizationStatus.msg` | 定位模块：定位质量等级（Good / Degraded / Lost） | 必须实现[4] |
+| `LocalizationStatus.msg` | 定位模块：定位质量等级（Good / Degraded / Lost） | 必须实现 |
 | `MappingStatus.msg` | 建图状态 | 建议实现 |
 | `MapInfo.msg` | 当前地图信息 | 建议实现 |
 | `NavigationStatus.msg` | 导航执行状态 | 必须实现 |
