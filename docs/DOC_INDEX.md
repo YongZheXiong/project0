@@ -86,10 +86,10 @@
 | --- | --- | --- |
 | `DEC-000_example.md` | 示例 | 仅用于示例，不是项目事实源 |
 | `DEC-001` ~ `DEC-021` | 决策记录 | 属于技术决策事实源 |
-| `DEC-009-semantic_location_owned_by_ap_manager.md` | 异常占位 / 非有效事实源 | 原空文件已保留为历史异常占位，不作为有效 DEC 技术事实源；语义位置归属相关候选替代草案见 DEC-022 |
+| `DEC-009-semantic_location_owned_by_ap_manager.md` | 异常占位 / 非有效事实源 | 原空文件已保留为历史异常占位，不作为有效 DEC 技术事实源；语义位置归属边界见 DEC-022 |
 | `DEC-013-manual_takeover_and_estop.md` | 废弃 | 已废弃，不再作为人工接管、急停或电源架构事实源；人工接管以 DEC-018 为准，急停以 DEC-019 为准，电源边界以 DEC-014 为准 |
 | `DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
-| `DEC-022-semantic_location_ownership_boundary.md` | 草案 / 待确认 | 用于承接语义位置归属与 p0_map_manager 边界讨论；人工确认前不作为有效 DEC 技术事实源 |
+| `DEC-022-semantic_location_ownership_boundary.md` | 确认 | 确认迭代一基线下语义位置表 / 语义位置数据 / 语义查询能力归属 p0_map_manager，p0_semantic_nav 通过查询接口获取位姿或区域；不推翻 DEC-005 |
 
 说明：DEC 文件只能作为决策事实源使用；DEC-009 暂缓复核；DEC-013 已废弃；DEC-014、DEC-018、DEC-019 分别承担电源边界、人工接管、急停事实源。
 
@@ -164,10 +164,10 @@
 | `simulation/README.md` | 占位 | 只是目录说明 |
 | `data/README.md` | 占位 | 只是目录说明 |
 | `process/decisions/DEC-000_example.md` | 示例 | 不参与事实裁决 |
-| `process/decisions/DEC-009-semantic_location_owned_by_ap_manager.md` | 异常占位 / 非有效事实源 | 原空文件已保留为历史异常占位，不作为有效 DEC 技术事实源；语义位置归属相关候选替代草案见 DEC-022 |
+| `process/decisions/DEC-009-semantic_location_owned_by_ap_manager.md` | 异常占位 / 非有效事实源 | 原空文件已保留为历史异常占位，不作为有效 DEC 技术事实源；语义位置归属边界见 DEC-022 |
 | `process/decisions/DEC-013-manual_takeover_and_estop.md` | 废弃 | 已废弃，不再作为人工接管、急停或电源架构事实源 |
 | `process/decisions/DEC-014-power_architecture_boundary.md` | 有效 | 电源架构主边界事实源 |
-| `process/decisions/DEC-022-semantic_location_ownership_boundary.md` | 草案 / 待确认 | 用于承接语义位置归属与 p0_map_manager 边界讨论；人工确认前不作为有效 DEC 技术事实源 |
+| `process/decisions/DEC-022-semantic_location_ownership_boundary.md` | 确认 | 确认迭代一基线下语义位置表 / 语义位置数据 / 语义查询能力归属 p0_map_manager，p0_semantic_nav 通过查询接口获取位姿或区域；不推翻 DEC-005 |
 
 ---
 
