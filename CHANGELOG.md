@@ -1,18 +1,42 @@
-# Changelog
+# 版本记录
 
-All notable public-facing changes to Project0 will be documented in this file.
+本文件记录 Project0 公开仓库中对外有意义的项目变化。
+
+公开仓库只记录项目成果、工程状态、架构、硬件、部署、代码、报告和展示材料相关变化；内部学习笔记、私人过程记录、CR、AI 协作治理和个人约束不在公开版本记录中展开。
 
 ## [Unreleased]
 
 ### Added
 
-- Added public project README with current platform status and hardware summary.
-- Added Orin NX baseline setup note.
-- Added ROS2 Humble base environment setup note and minimum talker/listener verification record.
-- Added system, software, compute/communication, hardware, power, and interface architecture documents.
-- Added hardware BOM, hardware inventory, wiring notes, reference images, and CAD materials.
+- 后续新增内容待记录。
 
 ### Changed
 
-- Generalized project scene description to an indoor single-floor loop corridor scenario.
-- Prepared public repository structure focused on project artifacts, architecture, deployment, hardware, firmware, source code, reports, and presentation materials.
+- 后续变更内容待记录。
+
+---
+
+## [public-snapshot-2026-06-03] - 2026-06-03
+
+### Added
+
+- 建立 Project0 公开展示仓库，用于对外展示具身智能小车平台项目。
+- 新增公开版 `README.md`，说明项目目标、当前阶段、硬件摘要、公开目录和部署入口。
+- 新增公开版 `AGENTS.md`，明确公开仓库的主要语言为中文，并说明公开内容边界。
+- 新增 Orin NX 实机基线记录，记录系统版本、L4T、功耗模式、网络与 SSH 访问状态。
+- 新增 ROS2 Humble 基础环境搭建记录，记录 ROS2 apt 源、`ros-humble-ros-base`、`ros-dev-tools` 和 demo 节点验证结果。
+- 新增系统架构、计算通信架构、软件架构、硬件架构、电源架构和接口定义文档。
+- 新增硬件 BOM、硬件清单、缺失硬件清单、线束记录、CAD 资料和硬件参考图片。
+- 新增配置、源码、固件、脚本、仿真、报告、展示材料和数据目录的公开占位结构。
+
+### Changed
+
+- 将项目场景描述泛化为室内单层回字形走廊真实场景，避免公开具体地点信息。
+- 将公开仓库内容范围收敛为项目成果、工程资料和可公开技术文档，不包含私人学习笔记、内部治理过程和个人约束材料。
+- 将公开仓库版本记录从 public snapshot 开始记录，不展开此前私有工作仓库中的内部开发、学习、治理和采购过程历史。
+
+### Notes
+
+- 本公开快照不表示整车已完成装配、接线、上电或验收。
+- 本公开快照不包含私有工作仓库中的学习笔记、CR、主观需求、客观限制、AI 协作规则和内部治理资料。
+- 后续公开版本记录将按项目成果推进继续更新，例如 ROS2 工作区、底层通信、传感器驱动、SLAM、导航、装配验证、报告和展示材料等。
