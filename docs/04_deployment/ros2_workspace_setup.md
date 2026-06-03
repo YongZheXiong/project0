@@ -1,4 +1,4 @@
-﻿# ROS2 工作区与基础环境搭建
+# ROS2 工作区与基础环境搭建
 
 ## P1.4-1 ROS2 Humble 基础环境记录
 
@@ -12,7 +12,7 @@
 
 | 项目 | 当前记录 |
 | --- | --- |
-| 主机名 | `gdsdc-desktop` |
+| 主机名 | `project0-orin-nx` |
 | 系统版本 | Ubuntu 22.04.5 LTS / jammy |
 | 架构 | `aarch64` / `arm64` |
 | 远程访问 | SSH 可用，Orin NX 已可按 headless 模式使用 |
@@ -103,7 +103,7 @@ ros2 doctor --report
 | Release platform | Ubuntu jammy |
 | RMW middleware | `rmw_fastrtps_cpp` |
 | 网络接口 | `lo`、`wlP1p1s0`、`enP8p1s0`、`l4tbr0`、`usb0`、`usb1` |
-| 当前 Wi-Fi IPv4 | `10.40.146.23` |
+| 当前 Wi-Fi IPv4 | `<orin-nx-ip>` |
 
 `ros2 doctor --report` 出现过 `Fail to call PackageReport class functions` warning。当前基础通信验证已通过，因此该 warning 先记录为待观察项，不作为 P1.4-1 阻断问题。
 
@@ -166,4 +166,153 @@ P1.4-1 ROS2 Humble 基础环境已完成最小验证：
 
 下一步建议进入 P1.4-2：ROS2 工作区骨架创建与 `colcon build` 验证。该步骤只应创建基础 workspace 和示例 / 空包，不提前展开正式控制、SLAM、导航或传感器驱动实现。
 
+## P1.4-2 ROS2 工作区骨架创建与 colcon build 验证
 
+记录日期：2026-06-03
+
+本节记录 Orin NX 上 ROS2 工作区骨架创建、`colcon build`、工作区环境加载和最小包识别结果。本文只记录工作区基础可用性，不表示正式控制、感知、SLAM、导航、传感器驱动或 launch 系统已经完成。
+
+### 1. 验证前状态
+
+已通过 SSH 登录 Orin NX：
+
+```bash
+ssh user@<orin-nx-ip>
+```
+
+登录后确认 ROS2 Humble 环境变量已自动加载：
+
+```bash
+printenv ROS_DISTRO
+```
+
+输出：
+
+```text
+humble
+```
+
+曾直接执行：
+
+```bash
+/usr/bin/colcon
+```
+
+该命令输出 `usage` 并提示 `Error: No verb provided`。这是因为 `colcon` 需要指定 `build`、`list`、`test` 等 verb，不表示 `colcon` 不可用。
+
+### 2. 创建空工作区并执行首次构建
+
+已创建 ROS2 工作区目录：
+
+```bash
+mkdir -p ~/project0_ros2_ws/src
+cd ~/project0_ros2_ws
+```
+
+随后在尚无 package 的工作区执行首次构建：
+
+```bash
+colcon build
+```
+
+输出：
+
+```text
+Summary: 0 packages finished [0.59s]
+```
+
+该结果说明空工作区可以被 `colcon build` 正常处理。
+
+随后加载工作区环境：
+
+```bash
+source install/setup.bash
+```
+
+### 3. 创建最小 ROS2 包
+
+创建最小 Python 类型 ROS2 package：
+
+```bash
+cd ~/project0_ros2_ws/src
+ros2 pkg create p0_bringup --build-type ament_python
+```
+
+已创建：
+
+1. `p0_bringup/package.xml`
+2. `p0_bringup/setup.py`
+3. `p0_bringup/setup.cfg`
+4. `p0_bringup/p0_bringup/__init__.py`
+5. `p0_bringup/resource/p0_bringup`
+6. `p0_bringup/test/` 下的基础测试文件
+
+创建时出现：
+
+```text
+[WARNING]: Unknown license 'TODO: License declaration'.
+```
+
+这是因为 `ros2 pkg create` 默认写入了占位 license，当前最小包仅用于工作区构建验证，后续正式保留或改造该包时再补充真实 license 信息。
+
+过程中曾出现一次：
+
+```text
+-bash: cd: 参数太多
+```
+
+原因是多条命令被误粘贴到同一行，导致 `cd` 收到了多余参数。随后已分行重新执行正确命令，因此该错误不影响 P1.4-2 验证结论。
+
+### 4. 构建最小包并验证 ROS2 可识别
+
+回到工作区根目录：
+
+```bash
+cd ~/project0_ros2_ws
+```
+
+执行构建：
+
+```bash
+colcon build
+```
+
+输出：
+
+```text
+Starting >>> p0_bringup
+Finished <<< p0_bringup [1.74s]
+
+Summary: 1 package finished [2.24s]
+```
+
+构建后加载工作区环境：
+
+```bash
+source install/setup.bash
+```
+
+验证 ROS2 package 索引中可以识别 `p0_bringup`：
+
+```bash
+ros2 pkg list | grep p0_bringup
+```
+
+输出：
+
+```text
+p0_bringup
+```
+
+### 5. 当前结论
+
+P1.4-2 ROS2 工作区骨架验证已完成：
+
+1. Orin NX 上可创建 `~/project0_ros2_ws/src` 工作区；
+2. 空工作区可执行 `colcon build`；
+3. 工作区 `install/setup.bash` 可 source；
+4. 可创建最小 `ament_python` 包 `p0_bringup`；
+5. 包创建后可重新 `colcon build`；
+6. source 工作区后，`ros2 pkg list` 可识别 `p0_bringup`。
+
+该阶段不包含正式功能代码实现。后续如继续使用 `p0_bringup`，需要补充 package 元信息、license、维护者信息，并按正式包职责重新整理其内容。

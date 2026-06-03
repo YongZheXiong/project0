@@ -1,4 +1,4 @@
-﻿# Wheel Motor Left Right Assembly v0.1
+# Wheel Motor Left Right Assembly v0.1
 
 状态：v0.1 左右轮系装配基线已归档。
 
@@ -54,5 +54,3 @@
 1. STEP 文件头显示由 Autodesk Translation Framework 导出，文件时间戳为 `2026-05-28T09:21:34+08:00`。
 2. STEP 文件包含实体几何数据，不是空导出文件。
 3. STL 文件包围盒约为 `208.4 x 84.986 x 84.993 mm`。
-
-

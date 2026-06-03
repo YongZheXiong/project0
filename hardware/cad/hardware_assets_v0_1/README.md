@@ -1,4 +1,4 @@
-﻿# Hardware CAD Assets v0.1
+# Hardware CAD Assets v0.1
 
 状态：v0.1 单件 CAD 资产已归档，用于整车布局和空间验证。
 
@@ -51,5 +51,3 @@
 ## 关联 CR
 
 本目录由 `内部变更记录` 建立。
-
-
