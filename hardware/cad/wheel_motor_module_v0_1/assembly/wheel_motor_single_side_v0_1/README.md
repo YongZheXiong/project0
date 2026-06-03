@@ -1,4 +1,4 @@
-﻿# Wheel Motor Single Side Assembly v0.1
+# Wheel Motor Single Side Assembly v0.1
 
 状态：v0.1 单侧轮系装配基线已归档。
 
@@ -46,5 +46,3 @@
 1. STEP 文件单位为 mm，包含实体 BREP，不是空导出文件。
 2. STEP 中可识别 5 个实体 BREP。
 3. STL 包围盒约为 `102.5 x 84.99 x 84.99 mm`。
-
-

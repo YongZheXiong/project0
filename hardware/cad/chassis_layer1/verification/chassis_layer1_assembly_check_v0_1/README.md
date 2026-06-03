@@ -1,4 +1,4 @@
-﻿# Chassis Layer 1 Assembly Check v0.1
+# Chassis Layer 1 Assembly Check v0.1
 
 状态：v0.1 第一层底板装配验证快照已归档。
 
@@ -40,5 +40,3 @@
 2. STEP 文件包含 `10` 个 `MANIFOLD_SOLID_BREP`。
 3. STL 文件为有效二进制 STL，三角面数量为 `19660`。
 4. STL 包围盒约为 `208.4 x 138.173 x 270.0 mm`。
-
-
