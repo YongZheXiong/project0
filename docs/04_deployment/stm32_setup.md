@@ -46,7 +46,7 @@ False
 | --- | --- |
 | 软件 | STMicroelectronics STM32CubeIDE |
 | 版本 | `1.19.0` |
-| 安装路径 | `D:\Soft\STM32CubeIDE_1.19.0` |
+| 安装路径 | 本地安装目录 |
 
 结论：Windows 主机上已安装 STM32CubeIDE 1.19.0。
 
@@ -247,29 +247,15 @@ Copy-Item -LiteralPath "<Windows 用户目录>\\Downloads\stm32cubef4-v1-28-0.zi
 
 ### 3. 首次工程创建异常
 
-首次尝试创建工程时，工程名疑似前置空格导致生成目录为：
-
-```text
-D:\STM32\ p14_4_stm32f407vet6_build_check
-```
+首次尝试创建工程时，工程名疑似前置空格导致生成了异常本地临时工程目录。
 
 该目录中生成了部分 `Core`、`Drivers` 和 `main.c`，但缺少 CubeIDE C/C++ 工程识别所需的 `.cproject`，导致 `Build Project` 不可用。该目录只作为异常过程记录，不作为本次验证通过工程。
 
-另有不带前置空格的残留目录：
-
-```text
-D:\STM32\p14_4_stm32f407vet6_build_check
-```
-
-该目录内容不完整，仅作为失败残留记录，不作为本次验证通过工程。
+另有不带前置空格的残留目录，内容不完整，仅作为失败残留记录，不作为本次验证通过工程。
 
 ### 4. 最小工程编译验证结果
 
-随后用户重新创建了一个干净的最小工程。当前通过编译验证的工程目录为：
-
-```text
-D:\STM32\1
-```
+随后用户重新创建了一个干净的最小工程。当前通过编译验证的工程目录为本地临时工程目录。
 
 该工程目录中已确认存在：
 
@@ -315,11 +301,11 @@ P1.4-4 STM32 最小工程创建与编译验证已完成：
 
 1. STM32Cube F4 固件库已补齐到 `V1.28.3`；
 2. STM32CubeIDE 可创建 STM32F407VETx 最小工程；
-3. 工程 `D:\STM32\1` 已完成编译；
+3. 本地临时工程已完成编译；
 4. 编译结果为 `0 errors, 0 warnings`；
 5. 当前验证只证明 STM32CubeIDE、STM32Cube F4 固件库和 ARM GCC 编译链路可用；
 6. 当前未烧录程序、未连接目标板、未调试运行、未接电机、电驱、主电池或 Orin NX UART；
-7. 工程 `D:\STM32\1` 只是最小编译验证工程，不是项目0正式 STM32 固件工程。
+7. 该工程只是最小编译验证工程，不是项目0正式 STM32 固件工程。
 
 ### 6. STM32CubeIDE 2.1.1 升级后复验
 
@@ -343,14 +329,10 @@ CubeMX 代码生成结果：
 
 ```text
 The Code is successfully generated under:
-D:/STM32/p14_4_f407_build_check_v2
+<local STM32 workspace>/p14_4_f407_build_check_v2
 ```
 
-随后在 STM32CubeIDE 中通过 `File -> Open Projects from File System...` 导入该工程。当前通过升级后复验的工程目录为：
-
-```text
-D:\STM32\p14_4_f407_build_check_v2
-```
+随后在 STM32CubeIDE 中通过 `File -> Open Projects from File System...` 导入该工程。当前通过升级后复验的工程目录为本地临时工程目录。
 
 该目录中已确认存在：
 
@@ -395,11 +377,11 @@ Build Finished. 0 errors, 0 warnings. (took 41s.23ms)
 1. STM32CubeIDE 已更新到 `2.1.1`，并可导入 CubeMX 生成的 STM32CubeIDE 工程；
 2. STM32CubeMX `6.17.0` 可为 `STM32F407VETx` 生成最小工程；
 3. STM32Cube F4 固件库 `V1.28.3` 可被 CubeMX / CubeIDE 使用；
-4. 工程 `D:\STM32\p14_4_f407_build_check_v2` 已在 STM32CubeIDE `2.1.1` 中完成编译；
+4. 本地临时工程已在 STM32CubeIDE `2.1.1` 中完成编译；
 5. 编译结果为 `0 errors, 0 warnings`；
 6. 本次复验只证明 STM32 工具链、固件库和最小工程编译链路可用；
 7. 当前仍未烧录程序、未连接目标板、未调试运行、未接电机、电驱、主电池或 Orin NX UART；
-8. 工程 `D:\STM32\p14_4_f407_build_check_v2` 只是最小编译复验工程，不是项目0正式 STM32 固件工程。
+8. 该工程只是最小编译复验工程，不是项目0正式 STM32 固件工程。
 
 ## P1.4-5 STM32 下载 / 调试接口边界确认记录
 
