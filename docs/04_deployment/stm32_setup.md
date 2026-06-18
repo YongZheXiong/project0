@@ -448,3 +448,19 @@ P1.4-5 STM32 下载 / 调试接口边界确认已完成：
 4. 当前未连接目标芯片、未擦除、未下载、未烧录、未调试运行；
 5. 当前不把 STM32CubeProgrammer 的 ST-LINK 通道写成已可用下载链路；
 6. 当前也不把 `No ST-LINK...` 写成板子故障，只记录为工具链边界。
+
+## P2 CMSIS-DAP / OpenOCD 与控制板故障状态
+
+记录日期：2026-06-17
+
+后续 P2 实测已确认 WCH-Link / CMSIS-DAP 可由 OpenOCD 识别，因此下载 / 调试路径不再只依赖 STM32CubeProgrammer 的 ST-LINK 通道。
+
+但原 STM32 控制板随后出现板载 3.3V 供电故障：
+
+1. 5V 输入正常；
+2. 3.3V 仅为零点几伏；
+3. `RESET / NRST = 0V`；
+4. 外接控制线拔除后未发现 5V / 3.3V 对地硬短路；
+5. 当前不能继续 SWD 目标连接、USART3 烧录或动力测试。
+
+替换板需要按单板供电、车载 5V、SWD、USART3 和 Orin NX 收包的顺序重新验收。技术摘要见 `../../hardware/wiring/p2_stm32_power_fault_summary_2026-06-17.md`。
