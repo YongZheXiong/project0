@@ -1,0 +1,5 @@
+# 测试与验收索引
+
+当前执行入口是 [H60 + MC520 重建验收计划](p2_h60_mc520_rebuild_acceptance_plan_2026-08-16.md)。全部实物 Gate 均为 `NOT RUN`。
+
+旧 STM32/JGB 平台的测试与验收记录保留为历史证据，但不能关闭新平台的任何 Gate。

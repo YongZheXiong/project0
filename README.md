@@ -1,81 +1,55 @@
 # Project0
 
-Project0 是一个单人开发的具身智能小车平台项目，面向室内单层回字形走廊真实场景，目标是构建具备感知、决策、执行闭环和安全约束机制的地面移动机器人基础平台。
-
-项目当前以真机平台为主线，优先完成可运行、可验证、可迭代的第一版系统，再在此基础上继续增强定位、导航、语义任务和实验支撑能力。
+Project0 是一个面向室内走廊环境的具身智能四轮差速小车项目，目标是建立可验证、可维护的感知—决策—执行闭环，并把安全约束作为系统能力的一部分。
 
 ## 当前状态
 
-| 项目 | 状态 |
-| --- | --- |
-| 当前阶段 | P2：P1 已正式结束；进入底盘装配、电气安全边界和基础运动验证阶段 |
-| 当前目标 | 完成阶段 D 悬空动力验收前的软件安全策略、局部线束复查和动力支路准入 |
-| ROS2 基线 | ROS2 Humble 基础环境与 `~/project0_ros2_ws` 工作区骨架已完成最小验证 |
-| STM32 基线 | 替换板、CMSIS-DAP / OpenOCD、USART3、四路编码器低功率手动计数、工程迁移和 flash 只读备份均已完成基础验证 |
-| 规划基线 | P2-P6 WBS、P2 Sprint 和迭代一风险登记已形成公开版基线 |
+截至 2026-08-16，项目已批准 **OpenCTR H60 V3.7 + 4 × MC520P56_12V + 65 mm 橡胶轮** 的重建数字基线。此前 STM32 + WSDC2412D + JGB37-520 + 三层底盘属于上一版实车，相关记录仅用于历史追溯，不能作为新车上电或运动准入依据。
 
-## 硬件摘要
-
-| 类别 | 当前选型 |
+| 项目 | 当前口径 |
 | --- | --- |
+| 阶段 | P2 重建：设计基线已统一，等待到货确认、新 CAD、线束定额、固件和 H0-H8 验收 |
 | 主计算 | Jetson Orin NX 16GB |
-| 激光雷达 | Livox Mid360 |
-| 深度相机 | Intel RealSense D435 |
-| 底盘 | 四轮差速，JGB-520 电机 x 4 |
-| 结构 | 三层底盘结构方案 |
+| 底层控制 | OpenCTR H60 V3.7，四路本地电驱与编码器闭环 |
+| 轮系 | 4 × MC520P56_12V，1:56，配套支架/线束/联轴器，65 mm 橡胶轮 |
+| 感知 | Livox Mid360 + Intel RealSense D435 |
+| 电源 | 3S 电池经 25A 主保险、主开关和带支路保护的分配端，分别供 H60、Orin、Mid360 |
+| 急停 | NC 控制继电器，仅切断 H60 正极；NO 作为 Orin 3.3V GPIO 干接点反馈 |
+| 采样 | H60 PC0 监测 VIN；首版不安装 Keyes 分压板或 ACS712 |
 
-当前状态表示 P1 到货与工程准备验收已完成，并不表示 P2 已完成。急停动力切断、STM32 替换板、USART3 通信、四路编码器低功率手动计数、D435 / Mid360 基础功能和手柄输入已完成基础验证；正式控制协议、通信中断停车、无新指令停车、编码器方向符号归一化、悬空动力验收、落地低速运动、FAST-LIO2、Nav2、Livox / RealSense ROS2 驱动和正式底盘控制仍会随项目推进继续更新。
+这只是数字工程基线，不表示套件已经到货、整车已经接线、上电或具备落地运动条件。
 
-P1.4 当前为最小工程环境收束：仿真基础环境和完整远程调试方案按条件触发后置，不作为 P2 前置条件。当前远程访问已确认 SSH 可用，后续调试方案按真实开发需要再补。
+## 关键安全边界
 
-## 公开目录
+- H60、Orin 和 Mid360 使用独立支路；Orin 与 Mid360 不从 H60 供电。
+- 急停按下后 H60 和电机失电，Orin 与 Mid360 保持运行；急停复位后仍必须经过新的显式 ARM 才能运动。
+- H60 必须在上电、复位、通信超时和异常后保持 `DISARMED/PWM=0`。
+- Orin 保活而 H60 失电会带来 UART 反供电风险，正式线束必须先完成测量并采用掉电高阻的缓冲或隔离方案。
+- H60 的 TVS、驱动过流保护和 VIN ADC 都不能替代主保险、支路保险、急停或实测验收。
+- H60 失电后 VIN 遥测也会消失；首版不具备急停后的独立电池电压/电流遥测。
+
+## 主要入口
+
+- [当前实现基线](docs/02_architecture/p2_h60_rebuild_baseline.md)
+- [H60 电源与急停接线](hardware/wiring/h60_power_estop_wiring_v0_1.md)
+- [H60 安全固件要求](firmware/h60_safety_firmware_requirements_v0_1.md)
+- [H0-H8 重建验收计划](docs/06_testing/p2_h60_mc520_rebuild_acceptance_plan_2026-08-16.md)
+- [当前公开 BOM](hardware/bom.md)
+- [重建与仓库统一报告](reports/h60_mc520_rebuild_baseline_2026-08-16.md)
+
+## 目录
 
 ```text
 Project0/
-├── config/              # 配置文件
-├── data/                # 数据目录
-├── docs/
-│   ├── 01_planning/     # 公开版 WBS、Sprint 和风险登记
-│   ├── 02_architecture/ # 系统、软硬件、通信、电源与接口架构
-│   └── 04_deployment/   # Orin NX、ROS2、STM32 等部署记录
-├── firmware/            # STM32 / 底层固件
-├── hardware/            # BOM、结构、线束和硬件资料
-├── presentation/        # 展示材料
-├── reports/             # 报告材料
-├── scripts/             # 工具脚本
-├── simulation/          # 仿真资料
-├── src/                 # ROS2 源码
-├── LICENSE
+├── docs/                 # 规划、架构、部署与测试
+├── firmware/             # 当前固件要求及历史 STM32 记录
+├── hardware/             # BOM、接线和 CAD 资料
+├── reports/              # 公开测试与审查报告
+├── scripts/              # 可复跑工具
+├── src/                  # ROS2 源码入口
 └── README.md
 ```
 
-## 文档入口
+## 后续顺序
 
-- `docs/02_architecture/`：系统架构、计算通信架构、软件架构、硬件架构、电源架构和接口定义。
-- `docs/01_planning/`：公开版迭代一 WBS、Sprint 规划和风险登记。
-- `docs/04_deployment/`：Orin NX 基线、ROS2 环境、ROS2 工作区、STM32 工具链和后续部署记录。
-- `hardware/`：公开硬件资料、BOM、线束记录和 CAD 资料。
-- `reports/`：可公开的测试与验收报告。
-- `scripts/`：可复跑的工程和测试脚本。
-
-## 开发与运行
-
-当前 ROS2 基础环境记录见：
-
-```text
-docs/04_deployment/ros2_workspace_setup.md
-```
-
-当前 Orin NX 实机基线记录见：
-
-```text
-docs/04_deployment/orin_nx_setup.md
-```
-
-当前 STM32 环境记录见：
-
-```text
-docs/04_deployment/stm32_setup.md
-```
-
-后续会继续补充底层通信、传感器驱动、SLAM、导航和系统启动流程。
+到货与版本确认 → 新 CAD 与质量/重心检查 → 断电接线检查 → 独立低功率上电 → 急停和反供电验证 → 安全固件 → 单路/四路悬空动力 → 落地低速。

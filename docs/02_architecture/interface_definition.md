@@ -1,5 +1,7 @@
 ﻿# 1. 文档定位
 
+> **当前实现覆盖（2026-08-16）**：现有 ROS2 接口名称仍是候选骨架；底盘桥接实现改为 H60，必须补充会话、ARM/DISARM、命令新鲜度、故障、VIN 和状态机字段，完成 H5 前不得称为冻结协议。
+
 本文档属于项目0在 P1 阶段的系统架构设计输出物之一，放置在 docs/02_architecture/ 目录下，与 system_architecture.md、compute_comm_architecture.md、power_architecture.md、hardware_architecture.md、software_architecture.md 并列管理。
 
 根据项目文件结构设计，项目0在 docs/02_architecture/ 下单独保留 interface_definition.md，用于继续展开模块间具体接口定义、自定义消息结构与调用关系。
@@ -11,7 +13,7 @@
 
 本文档当前版本为**骨架版 V0.1**，服务于迭代一“先跑通主链路、建立统一接口骨架、建立安全/管理/记录基础辅助包、保证地图/语义位置表/任务/模式最小成立”的目标，不追求一次性把全部字段定义写死。
 
-内部归档记录 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字段级 msg / srv / action 结构仍可在 P2-P5 联调中调整，V1.0 才是 P6 验收版正式接口清单。
+既有公开资料 本轮只形成 P1 接口骨架口径，不代表最终接口冻结；字段级 msg / srv / action 结构仍可在 P2-P5 联调中调整，V1.0 才是 P6 验收版正式接口清单。
 
 ----------------------------------------
 
@@ -58,7 +60,7 @@
 * 允许少量接口名称在 P2-P5 联调中调整；
 * 允许为迭代二增强保留预留字段与备注列；
 * 但迭代一最小闭环所需接口应尽量先稳定下来；
-* 内部归档记录 形成的是 P1 骨架口径，不把 V0.1 写成 V1.0 冻结版。
+* 既有公开资料 形成的是 P1 骨架口径，不把 V0.1 写成 V1.0 冻结版。
 
 ----------------------------------------
 
@@ -183,7 +185,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | `/p0/map/save` | `p0_interfaces/SaveMap` | `p0_map_manager` | `p0_mapping`, 运维入口 | 保存当前地图 | 建议实现 | 软件架构指出建图通过请求响应型接口与地图管理协作完成地图保存。 |
 | `/p0/map/load` | `p0_interfaces/LoadMap` | `p0_map_manager` | `p0_localization`, `p0_system_manager` | 加载指定地图 | 必须实现 | 软件架构指出地图管理向定位提供地图加载资源。 |
-| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | `p0_map_manager` | `p0_semantic_nav` | 查询语义位置对应空间目标 | 必须实现 | DEC-022 确认其作为迭代一基线的语义位置查询边界；P1 骨架口径采用 `QuerySemanticPose.srv`，`GetSemanticPose.srv` 仅作为历史备选命名待淘汰，不代表 V1.0 最终冻结。 |
+| `/p0/map/query_semantic_pose` | `p0_interfaces/QuerySemanticPose` | `p0_map_manager` | `p0_semantic_nav` | 查询语义位置对应空间目标 | 必须实现 | 既有设计记录 确认其作为迭代一基线的语义位置查询边界；P1 骨架口径采用 `QuerySemanticPose.srv`，`GetSemanticPose.srv` 仅作为历史备选命名待淘汰，不代表 V1.0 最终冻结。 |
 
 ## 6.2 系统管理服务
 
@@ -265,7 +267,7 @@
 | `ResetBridge.srv` | 重新初始化底盘桥接 | 建议实现 |
 | `SetBaseMode.srv` | 切换底盘控制模式 | 建议实现 |
 
-> 注：内部归档记录 后 P1 骨架口径建议采用 `QuerySemanticPose.srv`；`GetSemanticPose.srv` 仅保留为历史备选命名并标注待淘汰。该口径不代表 V1.0 最终冻结。
+> 注：既有公开资料 后 P1 骨架口径建议采用 `QuerySemanticPose.srv`；`GetSemanticPose.srv` 仅保留为历史备选命名并标注待淘汰。该口径不代表 V1.0 最终冻结。
 
 ## 8.3 Action 清单（骨架版）
 
@@ -344,7 +346,7 @@
 
 # 11. 待统一与待确认项
 
-以下内容在 内部归档记录 后形成 P1 骨架口径，但仍不是 V1.0 最终冻结：
+以下内容在 既有公开资料 后形成 P1 骨架口径，但仍不是 V1.0 最终冻结：
 
 1. 语义位置查询服务在迭代一基线中由 `p0_map_manager` 提供、由 `p0_semantic_nav` 调用；P1 骨架口径采用 `QuerySemanticPose.srv`，`GetSemanticPose.srv` 标注为历史备选命名 / 待淘汰；
 2. `TriggerEmergencyStop.srv` 的 P1 骨架主归属为 `p0_safety_manager`，用于软件急停触发与安全仲裁；`p0_system_manager` 可作为系统模式联动方或调用方，解除 / 复位语义仍待 P2-P5 联调确认；
@@ -456,5 +458,4 @@
 # 14. 总结
 
 本文档作为 `interface_definition.md` 骨架版 V0.1，已经在软件架构给出的接口组织原则、架构级接口关系、建议版话题/服务/动作接口与 `p0_interfaces` 初始接口清单基础上，整理出面向迭代一最小闭环的 P1 接口定义表骨架，用于支撑后续 P2-P6 的模块设计、实现、联调、测试与验收；字段级结构和最终接口清单以 P2-P5 联调结果与 P6 V1.0 验收版为准。
-
 
