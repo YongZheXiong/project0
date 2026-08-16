@@ -1,3 +1,6 @@
-﻿# ROS2 Source Workspace
+# ROS2 Source Workspace
 
+ROS2 主业务仍计划运行于 Orin NX。当前底盘桥接目标已从 STM32 切换为 H60 V3.7，但 H60 协议、显式 ARM、状态上报、超时停车和反供电保护尚未实现。
+
+本公开快照不包含可直接用于 H60 动力运行的正式底盘桥接源码。
 

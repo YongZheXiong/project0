@@ -1,5 +1,7 @@
 ﻿# 1. 文档定位
 
+> **当前实现覆盖（2026-08-16）**：ROS2 主业务仍在 Orin NX；底层桥接目标从 STM32 改为 H60。底盘协议必须包含新会话显式 ARM、序号/CRC、短超时和 H60 状态机；正文中 STM32 固件描述为历史实现。
+
 本文档属于项目0在 P1 阶段的系统架构设计输出物之一，放置在 docs/02_architecture/ 目录下，与 system_architecture.md、compute_comm_architecture.md、power_architecture.md、hardware_architecture.md 并列管理。
 
 根据项目文件结构设计，software_architecture.md 是 P1 阶段正式架构文档之一，用于承接系统总架构中未展开的软件实现层内容，并为后续 interface_definition.md、docs/03_design/ 下的各模块设计文档、docs/04_deployment/ 下的部署运行文档提供上位软件骨架。
@@ -144,7 +146,7 @@ STM32 不运行 ROS2 主业务，不参与主工作区中的 ROS2 包组织；ST
 
 # 6. 软件主工作区与仓库组织关系
 
-根据项目文件结构设计，项目总仓库采用 project0/ 作为统一根目录，其中 docs/、firmware/、src/、config/、scripts/、data/、experiments/、simulation/、reports/、presentation/、process/ 等目录共同构成项目整体工程与成果沉淀结构。
+根据项目文件结构设计，公开仓库采用 project0/ 作为统一根目录，其中 docs/、firmware/、src/、config/、scripts/、data/、experiments/、simulation/、reports/、presentation/ 等目录共同构成公开工程与成果资料。
 
 在软件架构层，建议将项目总仓库根目录同时作为 ROS2 主工作区根目录使用，避免额外再套一层独立 workspace 目录，从而降低单人维护复杂度，并保持与文件结构设计方案一致。
 
@@ -162,7 +164,6 @@ project0/
 ├── simulation/
 ├── reports/
 ├── presentation/
-├── process/
 ├── README.md
 ├── 版本记录
 └── .gitignore
@@ -691,5 +692,3 @@ p0_sensor_drivers
 
 > 项目0在 Orin NX 上采用单一主 ROS2 workspace 作为软件主承载结构，通过 p0_interfaces 统一定义内部接口，通过 p0_bringup 统一组织模式化启动，通过 p0_sensor_drivers、p0_base_bridge、p0_mapping、p0_localization、p0_map_manager、p0_navigation、p0_semantic_nav、p0_task_manager、p0_safety_manager、p0_system_manager、p0_data_tools 等软件包完成系统主链路与辅助链路的软件展开。软件主链路按“感知输入—空间认知—任务决策—行动规划—底盘控制”组织，辅助链路按“安全、管理、记录”组织，并通过架构级话题、服务、动作接口实现跨包解耦；STM32 不运行 ROS2 主业务，仅以独立固件形式通过 p0_base_bridge 接入 ROS2 世界。该软件架构既能直接支撑迭代一最小闭环平台成立，也为后续对多传感器融合、外挂回环、定位建图鲁棒性和必要的 SLAM 核心研究开展受控演进预留空间；此类演进不得削弱安全、人工接管、急停、系统模式仲裁、电源边界、通信主链路和已验收平台基线。
 ```
-
-
