@@ -1,6 +1,6 @@
 ﻿# 1. 文档定位
 
-> **当前实现覆盖（2026-08-16）**：ROS2 主业务仍在 Orin NX；底层桥接目标从 STM32 改为 H60。底盘协议必须包含新会话显式 ARM、序号/CRC、短超时和 H60 状态机；正文中 STM32 固件描述为历史实现。
+> **当前实现覆盖（2026-08-16）**：ROS2 主业务仍在 Orin NX；底层桥接目标从 STM32 改为 H60。底盘协议必须包含新会话显式 ARM、序号/CRC、短超时和 H60 状态机；正文中未带“旧 / 历史”限定的 STM32 实现说明也只表示上一平台的软件展开，不是当前控制器事实。现有源码尚未完成 H60 迁移，不得直接控制 H60。
 
 本文档属于项目0在 P1 阶段的系统架构设计输出物之一，放置在 docs/02_architecture/ 目录下，与 system_architecture.md、compute_comm_architecture.md、power_architecture.md、hardware_architecture.md 并列管理。
 
@@ -690,5 +690,4 @@ p0_sensor_drivers
 
 项目0软件架构可以概括为：
 
-> 项目0在 Orin NX 上采用单一主 ROS2 workspace 作为软件主承载结构，通过 p0_interfaces 统一定义内部接口，通过 p0_bringup 统一组织模式化启动，通过 p0_sensor_drivers、p0_base_bridge、p0_mapping、p0_localization、p0_map_manager、p0_navigation、p0_semantic_nav、p0_task_manager、p0_safety_manager、p0_system_manager、p0_data_tools 等软件包完成系统主链路与辅助链路的软件展开。软件主链路按“感知输入—空间认知—任务决策—行动规划—底盘控制”组织，辅助链路按“安全、管理、记录”组织，并通过架构级话题、服务、动作接口实现跨包解耦；STM32 不运行 ROS2 主业务，仅以独立固件形式通过 p0_base_bridge 接入 ROS2 世界。该软件架构既能直接支撑迭代一最小闭环平台成立，也为后续对多传感器融合、外挂回环、定位建图鲁棒性和必要的 SLAM 核心研究开展受控演进预留空间；此类演进不得削弱安全、人工接管、急停、系统模式仲裁、电源边界、通信主链路和已验收平台基线。
-```
+> 项目0在 Orin NX 上采用单一主 ROS2 workspace，通过统一接口和模式启动组织感知、底盘桥接、建图定位、导航、任务、安全、系统管理与记录包。H60 不运行 ROS2 主业务，而以独立安全固件通过底盘桥接接入；桥接必须实现版本化协议、急停锁存、新会话显式 ARM、输入回中、超时 STOP 和故障状态。现有旧 STM32 文本桥只作迁移骨架，完成 H60 无动力与故障注入验收前不得用于动力控制。

@@ -1,6 +1,6 @@
 ﻿# 1. 文档定位
 
-> **当前实现覆盖（2026-08-16）**：现有 ROS2 接口名称仍是候选骨架；底盘桥接实现改为 H60，必须补充会话、ARM/DISARM、命令新鲜度、故障、VIN 和状态机字段，完成 H5 前不得称为冻结协议。
+> **当前实现覆盖（2026-08-16）**：现有 ROS2 接口名称仍是候选骨架；底盘桥接实现改为 H60，必须补充会话、ARM/DISARM、命令新鲜度、故障、VIN 和状态机字段。正文中的 STM32 字样只描述上一平台已落地的接口子集，不是当前物理端；完成 H5 前不得称为冻结协议或用于运动。
 
 本文档属于项目0在 P1 阶段的系统架构设计输出物之一，放置在 docs/02_architecture/ 目录下，与 system_architecture.md、compute_comm_architecture.md、power_architecture.md、hardware_architecture.md、software_architecture.md 并列管理。
 
@@ -458,4 +458,3 @@
 # 14. 总结
 
 本文档作为 `interface_definition.md` 骨架版 V0.1，已经在软件架构给出的接口组织原则、架构级接口关系、建议版话题/服务/动作接口与 `p0_interfaces` 初始接口清单基础上，整理出面向迭代一最小闭环的 P1 接口定义表骨架，用于支撑后续 P2-P6 的模块设计、实现、联调、测试与验收；字段级结构和最终接口清单以 P2-P5 联调结果与 P6 V1.0 验收版为准。
-
