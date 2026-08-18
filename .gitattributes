@@ -1,0 +1,2 @@
+# STEP exports are generated CAD assets. Preserve exact bytes and avoid text merges.
+*.step -diff -merge -text -whitespace
