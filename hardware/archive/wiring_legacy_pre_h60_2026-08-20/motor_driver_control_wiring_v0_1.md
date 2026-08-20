@@ -23,7 +23,7 @@
 
 数据手册：
 
-`hardware/reference_docs/drive/PWR-MOT-004_WSDC2412D-V3_0_datasheet.pdf`
+上一 WSDC2412D-V3.0 数据手册（未包含在当前公开快照）
 
 关键结论：
 

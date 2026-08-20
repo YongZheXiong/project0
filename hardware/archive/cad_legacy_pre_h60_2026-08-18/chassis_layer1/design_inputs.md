@@ -125,7 +125,7 @@ PCB 类硬件底部存在焊点，不应直接贴在底板上安装。
 
 ### 5.1 PWR-004 主电池托盘
 
-参考：`hardware/cad/power_tray/design_record.md`
+参考：`hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/design_record.md`
 
 | 参数 | 数值 | 来源 | 备注 |
 |---|---:|---|---|

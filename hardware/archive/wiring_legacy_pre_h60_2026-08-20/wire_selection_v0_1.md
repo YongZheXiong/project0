@@ -1,10 +1,10 @@
 # Project0 上一平台实装线束与连接边界
 
-> **历史记录**：本文线束适用于上一 STM32/JGB/WSDC 平台。H60 重建线束按 [当前接线基线](h60_power_estop_wiring_v0_1.md) 重新定额和验收。
+> **历史记录**：本文线束适用于上一 STM32/JGB/WSDC 平台。H60 重建线束按 [当前接线基线](../../wiring/h60_power_wiring_v0_2.md) 重新定额和验收。
 
 ## 1. 文件作用
 
-> 文档状态：正式 / P2 当前实装线束事实源
+> 文档状态：历史 / 上一平台实装线束事实源
 > 最近更新：2026-06-18
 
 本文档记录 Project0 当前实装线材、线径、端子、连接端点和仍待验证的线束边界。文件名保留 `v0_1` 以避免破坏既有引用，但正文已由 P1.3 采购口径升级为 P2 实装事实源。
@@ -146,7 +146,7 @@
 |---|---|---|---|---|
 | 主电源正负采样点 | 电压检测模块输入 | 22AWG | 现有多色线 | 并联采样，不串入主电源回路 |
 | 电压检测模块 VCC / GND / OUT | STM32 | 22AWG | 现有多色线 | OUT 接 STM32 ADC，按后续分压/滤波方案执行 |
-| ACS712 VCC / GND / OUT | STM32 | 22AWG | 现有多色线 | ACS712 大电流端和信号端分开理解；`S / OUT` 必须经分压滤波后接 STM32 `PA1`，详见 `hardware/wiring/acs712_current_sensing_wiring_v0_1.md` |
+| ACS712 VCC / GND / OUT | STM32 | 22AWG | 现有多色线 | ACS712 大电流端和信号端分开理解；`S / OUT` 必须经分压滤波后接 STM32 `PA1`，详见 `acs712_current_sensing_wiring_v0_1.md` |
 | STM32 PWM / INA / INB / GND | 两块电驱控制端 | 22AWG | 现有多色线 | 端子形式按电驱 CN1 和 STM32 排针确定 |
 | 电机编码器 VCC / GND / A / B | STM32 编码器输入 | 原厂线 / 后续可选 24AWG 四芯屏蔽软线 | 原厂颜色 / 屏蔽线 | 本轮未采购四芯屏蔽线；若原厂线长度不足，再按实物长度补买 |
 
@@ -163,7 +163,7 @@ JGB-520 编码器线序按当前 BOM 与实物照片收束为：蓝色为编码�
 
 固件配置时 `PA15 / PB3` 需释放 JTAG 复用，仅保留 SWD 调试；编码器信号接入前应确认 A/B 输出电平不超过 STM32 输入允许范围。
 
-当前 P2 电驱控制线实际接线、颜色分配、STM32 引脚分配和安全初始化验证结果见 `hardware/wiring/motor_driver_control_wiring_v0_1.md`。
+上一平台电驱控制线实际接线、颜色分配、STM32 引脚分配和安全初始化验证结果见 `motor_driver_control_wiring_v0_1.md`。
 
 ACS712-30A 电流采样分压滤波小板采用 `3 列 x 4 行` 洞洞板布局：A 列为 `S_IN`，B 列为 `ADC_NODE / PA1_OUT`，C 列为 `GND`；`12kΩ` 接 `A1-B1`，`22kΩ` 接 `B2-C2`，`104 / 0.1uF` 电容接 `B3-C3`，`A4 / B4 / C4` 分别作为 `S_IN / PA1_OUT / GND` 接口。
 
@@ -195,7 +195,7 @@ ACS712-30A 电流采样分压滤波小板采用 `3 列 x 4 行` 洞洞板布局�
 截至 2026-06-16，第二层电源、控制支路、急停继电器、动力支路和 USB / 调试器反供电现象的现场调试记录见：
 
 ```text
-hardware/wiring/p2_power_estop_bringup_record_v0_1.md
+p2_power_estop_bringup_summary_2026-06-16.md
 ```
 
 ## 6. 历史采购长度与当前余量口径

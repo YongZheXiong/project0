@@ -6,11 +6,11 @@
 
 参数来源：
 
-1. `hardware/cad/chassis_layer1/design_inputs.md`
-2. `hardware/cad/wheel_motor_module_v0_1/parts/wheel_85mm_v0_1/`
-3. `hardware/cad/wheel_motor_module_v0_1/parts/coupler_6mm_clamp_v0_1/`
-4. `hardware/cad/wheel_motor_module_v0_1/parts/motor_jgb37_520_v0_1/`
-5. `hardware/cad/wheel_motor_module_v0_1/parts/motor_bracket_jgb37_v0_1/`
+1. `hardware/archive/cad_legacy_pre_h60_2026-08-18/chassis_layer1/design_inputs.md`
+2. `hardware/archive/cad_legacy_pre_h60_2026-08-18/wheel_motor_module_v0_1/parts/wheel_85mm_v0_1/`
+3. `hardware/archive/cad_legacy_pre_h60_2026-08-18/wheel_motor_module_v0_1/parts/coupler_6mm_clamp_v0_1/`
+4. `hardware/archive/cad_legacy_pre_h60_2026-08-18/wheel_motor_module_v0_1/parts/motor_jgb37_520_v0_1/`
+5. `hardware/archive/cad_legacy_pre_h60_2026-08-18/wheel_motor_module_v0_1/parts/motor_bracket_jgb37_v0_1/`
 6. 用户在 Fusion 360 中的装配检查结果。
 
 当前装配关系：
