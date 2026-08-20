@@ -6,8 +6,8 @@
 
 参数来源：
 
-1. `hardware/cad/chassis_layer1/reference_drawings/电机.webp`
-2. `hardware/cad/chassis_layer1/design_inputs.md`
+1. `hardware/archive/cad_legacy_pre_h60_2026-08-18/chassis_layer1/reference_drawings/电机.webp`
+2. `hardware/archive/cad_legacy_pre_h60_2026-08-18/chassis_layer1/design_inputs.md`
 3. 用户补充：减速比为 `70`，输出轴为 D 型轴。
 
 当前建模范围：

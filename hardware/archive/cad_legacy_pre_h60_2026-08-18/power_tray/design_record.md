@@ -40,15 +40,15 @@
 
 最终 Fusion 导出文件位于：
 
-1. `hardware/cad/power_tray/final/power_tray_v0_1_fusion_final.f3d`
-2. `hardware/cad/power_tray/final/power_tray_v0_1_fusion_final.step`
-3. `hardware/cad/power_tray/final/power_tray_v0_1_fusion_final.stl`
+1. `hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/final/power_tray_v0_1_fusion_final.f3d`
+2. `hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/final/power_tray_v0_1_fusion_final.step`
+3. `hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/final/power_tray_v0_1_fusion_final.stl`
 
 建模源文件和说明位于：
 
-1. `hardware/cad/power_tray/source/fusion_auto_model_power_tray.py`
-2. `hardware/cad/power_tray/source/power_tray_v0_1.scad`
-3. `hardware/cad/power_tray/source/fusion_modeling_steps.md`
+1. `hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/source/fusion_auto_model_power_tray.py`
+2. `hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/source/power_tray_v0_1.scad`
+3. `hardware/archive/cad_legacy_pre_h60_2026-08-18/power_tray/source/fusion_modeling_steps.md`
 
 ## 非目标
 

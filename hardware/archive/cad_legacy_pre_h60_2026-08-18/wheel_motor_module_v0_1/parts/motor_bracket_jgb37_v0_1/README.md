@@ -6,8 +6,8 @@
 
 参数来源：
 
-1. `hardware/cad/chassis_layer1/reference_drawings/电机支架.webp`
-2. `hardware/cad/chassis_layer1/design_inputs.md`
+1. `hardware/archive/cad_legacy_pre_h60_2026-08-18/chassis_layer1/reference_drawings/电机支架.webp`
+2. `hardware/archive/cad_legacy_pre_h60_2026-08-18/chassis_layer1/design_inputs.md`
 3. 用户已确认术语：底盘安装面、电机安装面。
 
 当前建模范围：

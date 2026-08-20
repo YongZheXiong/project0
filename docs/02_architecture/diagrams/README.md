@@ -1,5 +1,13 @@
-# 架构图说明
+# 架构图状态
 
-`vehicle_hardware_topology.drawio` 描述上一 STM32/JGB/WSDC/三层底盘平台，现作为历史图保留。
+`vehicle_hardware_topology.drawio` 已于 2026-08-20 更新为当前 H60 + MC520 拓扑。图中明确区分供电与数据链路，并标注当前无独立急停/继电器、只有 H60 VIN 电压采样而无车载电流采样。
 
-当前 H60/MC520 拓扑以 [P2 H60 重建基线](../p2_h60_rebuild_baseline.md) 和 [H60 电源与急停接线](../../../hardware/wiring/h60_power_estop_wiring_v0_1.md) 为准；新 CAD 和正式接线冻结后再更新图源。
+图中橙色连线为供电/电机驱动输出，蓝色连线为数据/控制或编码器反馈。H60 到四个电机的驱动输出与编码器回传已分成两条单向关系，不再用一条双向线混合表示。
+
+精确针序、线径、保险、协议和验收仍以下列文本事实源为准：
+
+1. `../p2_h60_rebuild_baseline.md`
+2. `../../../hardware/wiring/h60_power_wiring_v0_2.md`
+3. `../h60_power_motion_sampling_boundary.md`
+
+该图是系统拓扑，不是已实装接线图；它不能证明器件已到货、线束已完成或当前可上电/运动。
