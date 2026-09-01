@@ -1,0 +1,49 @@
+p0_linux_joy:
+  ros__parameters:
+    vendor_id: "04b4"
+    product_id: "2411"
+    device_path: ""
+    publish_period_sec: 0.05
+    reconnect_period_sec: 1.0
+    link_timeout_sec: 0.30
+
+p0_base_bridge:
+  ros__parameters:
+    serial_device: /dev/ttyTHS1
+    baud_rate: 115200
+    command_timeout_sec: 0.20
+    comm_timeout_sec: 0.35
+    refresh_period_sec: 0.05
+    heartbeat_period_sec: 0.10
+    linear_deadband_mps: 0.01
+    angular_deadband_radps: 0.02
+    # Both switches remain false until H4/H5 and H6 acceptance close.
+    motion_commands_enabled: false
+    wheel_mapping_confirmed: false
+    # Current CAD nominal only; H6 must replace/freeze the measured value.
+    track_width_m: 0.18416
+    # Zero is an additional hard block until H6 freezes a tested wheel limit.
+    wheel_target_limit_mmps: 0
+    channel_wheels: [unmapped_a, unmapped_b, unmapped_c, unmapped_d]
+    channel_signs: [1, 1, 1, 1]
+
+p0_safety_manager:
+  ros__parameters:
+    manual_timeout_sec: 0.25
+    autonomy_timeout_sec: 0.25
+    manual_release_hold_sec: 0.50
+    autonomy_enabled: false
+    publish_period_sec: 0.05
+
+p0_manual_control:
+  ros__parameters:
+    # Flydigi Android mode mapping revalidated on Orin on 2026-07-17.
+    mapping_confirmed: true
+    linear_axis: 1
+    angular_axis: 2
+    deadman_button: 6
+    linear_scale: -0.20
+    angular_scale: -0.80
+    deadzone: 0.10
+    joy_timeout_sec: 0.25
+    publish_period_sec: 0.05

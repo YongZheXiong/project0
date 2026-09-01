@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>p0_safety_manager</name>
+  <version>0.1.0</version>
+  <description>Fail-safe Project0 motion command arbiter with H60 readiness gates.</description>
+  <maintainer email="maintainer@example.com">Project0 maintainer</maintainer>
+  <license>Proprietary</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>p0_interfaces</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,2 +1,9 @@
 # STEP exports are generated CAD assets. Preserve exact bytes and avoid text merges.
 *.step -diff -merge -text -whitespace
+
+*.pdf -diff -merge -text -whitespace
+*.webp -diff -merge -text -whitespace
+*.jpg -diff -merge -text -whitespace
+*.jpeg -diff -merge -text -whitespace
+*.png -diff -merge -text -whitespace
+*.pgm -diff -merge -text -whitespace
