@@ -2,7 +2,7 @@
 
 本目录承接 Project0 当前 H60 固件需求，以及上一 STM32 平台的固件和实测历史。
 
-当前入口是 `h60_motion_control_firmware_requirements_v0_2.md`。它定义 H60 在获得动力准入前必须实现的 `DISARMED`、显式 ARM、协议边界、通信超时、IWDG、异常撤 PWM、反转斜坡和 VIN ADC 行为；当前状态为尚未实现、尚未构建、尚未烧录。
+当前入口包括 `h60_safe_control/` 与 `h60_motion_control_firmware_requirements_v0_2.md`。`h60_safe_control` 已提供并验证 `v0.1.1` 运动锁定固件：默认 `DISARMED`、显式 ARM 拒绝、协议边界、通信超时、IWDG 和异常撤 PWM；生产构建固定 `MOTION=0`，不配置 PWM，也不放行接电机或运动。反转斜坡、闭环和动力验收仍待实现。
 
 以下 STM32 记录均为上一实车平台历史，不适用于 H60 引脚、协议、电机方向、编码器 CPR 或新平台验收：
 
