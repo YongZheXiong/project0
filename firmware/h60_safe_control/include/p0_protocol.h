@@ -20,6 +20,7 @@ typedef enum {
     P0_MSG_STOP = 0x04,
     P0_MSG_WHEEL_TARGET = 0x05,
     P0_MSG_CLEAR_FAULT = 0x06,
+    P0_MSG_M2A_CALIBRATION_HOLD = 0x07,
     P0_MSG_TELEMETRY = 0x80,
     P0_MSG_ACK = 0x81,
     P0_MSG_NACK = 0x82

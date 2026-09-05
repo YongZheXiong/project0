@@ -23,6 +23,7 @@ MSG_DISARM = 0x03
 MSG_STOP = 0x04
 MSG_WHEEL_TARGET = 0x05
 MSG_CLEAR_FAULT = 0x06
+MSG_M2A_CALIBRATION_HOLD = 0x07
 MSG_TELEMETRY = 0x80
 MSG_ACK = 0x81
 MSG_NACK = 0x82
@@ -34,6 +35,10 @@ STATE_FAULT = 3
 
 STATUS_OK = 0
 STATUS_MOTION_LOCKED = 8
+STATUS_TARGET_REJECTED = 10
+
+CAPABILITY_M2A_CALIBRATION = 0x02
+M2A_MAX_DUTY_PERMILLE = 120
 
 STATE_NAMES = {
     STATE_BOOT: "BOOT",
@@ -62,6 +67,7 @@ STATUS_NAMES = {
     7: "UNKNOWN_COMMAND",
     8: "MOTION_LOCKED",
     9: "FAULT_LATCHED",
+    10: "TARGET_REJECTED",
 }
 
 
@@ -85,6 +91,7 @@ class Telemetry:
     vin_nominal_mv: int
     firmware_version: Tuple[int, int, int]
     boot_fault_code: int
+    capabilities: int
     session_id: int
     sequence: int
 
@@ -226,6 +233,7 @@ def decode_telemetry(packet: Packet) -> Telemetry:
         vin_nominal_mv=values[13],
         firmware_version=(values[14], values[15], values[16]),
         boot_fault_code=values[18],
+        capabilities=values[17],
         session_id=packet.session_id,
         sequence=packet.sequence,
     )
@@ -256,6 +264,28 @@ def encode_wheel_targets_mmps(targets: Sequence[int]) -> bytes:
             raise ValueError("wheel target must fit int16 mm/s")
         checked.append(integer)
     return struct.pack("<4h", *checked)
+
+
+def encode_m2a_calibration_hold(
+    channel: int,
+    direction: int,
+    duty_permille: int,
+) -> bytes:
+    channel_value = int(channel)
+    direction_value = int(direction)
+    duty_value = int(duty_permille)
+    if channel_value < 0 or channel_value > 3:
+        raise ValueError("M2-A channel must be 0..3 for MA..MD")
+    if direction_value not in (-1, 0, 1):
+        raise ValueError("M2-A direction must be -1, 0 or 1")
+    if direction_value == 0:
+        if duty_value != 0:
+            raise ValueError("M2-A release requires zero duty")
+    elif duty_value <= 0 or duty_value > M2A_MAX_DUTY_PERMILLE:
+        raise ValueError(
+            f"M2-A duty must be 1..{M2A_MAX_DUTY_PERMILLE} permille"
+        )
+    return struct.pack("<BbH", channel_value, direction_value, duty_value)
 
 
 def differential_targets_mmps(

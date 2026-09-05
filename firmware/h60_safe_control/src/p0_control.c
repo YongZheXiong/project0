@@ -180,8 +180,63 @@ static p0_status_t handle_arm(
         force_zero_first(control);
         return P0_STATUS_MOTION_LOCKED;
     }
+    if ((control->motor.prepare_arm != 0) &&
+        !control->motor.prepare_arm(control->motor.context, now_ms)) {
+        enter_fault(control, P0_FAULT_LOCAL);
+        return P0_STATUS_TARGET_REJECTED;
+    }
 
     control->state = P0_STATE_ARMED;
+    control->last_command_ms = now_ms;
+    return P0_STATUS_OK;
+}
+
+static p0_status_t handle_m2a_calibration_hold(
+    p0_control_t *control,
+    const p0_packet_t *packet,
+    uint32_t now_ms)
+{
+    uint8_t channel;
+    int8_t direction;
+    uint16_t duty_permille;
+
+    if (packet->payload_length != UINT16_C(4)) {
+        enter_fault(control, P0_FAULT_PROTOCOL);
+        return P0_STATUS_BAD_PAYLOAD;
+    }
+    if (control->state != P0_STATE_ARMED) {
+        enter_fault(control, P0_FAULT_PROTOCOL);
+        return P0_STATUS_BAD_STATE;
+    }
+    if (!control->session_valid ||
+        (packet->session_id != control->session_id)) {
+        enter_fault(control, P0_FAULT_SESSION);
+        return P0_STATUS_BAD_SESSION;
+    }
+    if (!packet_has_new_sequence(control, packet)) {
+        enter_fault(control, P0_FAULT_SEQUENCE);
+        return P0_STATUS_BAD_SEQUENCE;
+    }
+    if (!time_is_fresh(now_ms, control->last_heartbeat_ms)) {
+        enter_fault(control, P0_FAULT_TIMEOUT);
+        return P0_STATUS_HEARTBEAT_REQUIRED;
+    }
+
+    channel = packet->payload[0];
+    direction = (int8_t)packet->payload[1];
+    duty_permille = p0_read_u16_le(&packet->payload[2]);
+    if ((control->motor.calibration_hold == 0) ||
+        !control->motor.calibration_hold(
+            control->motor.context,
+            channel,
+            direction,
+            duty_permille,
+            now_ms)) {
+        enter_fault(control, P0_FAULT_LOCAL);
+        return P0_STATUS_TARGET_REJECTED;
+    }
+
+    control->last_sequence = packet->sequence;
     control->last_command_ms = now_ms;
     return P0_STATUS_OK;
 }
@@ -218,13 +273,17 @@ static p0_status_t handle_wheel_target(
 
     for (i = 0; i < P0_WHEEL_COUNT; ++i) {
         target[i] = p0_read_i16_le(&packet->payload[(size_t)i * 2U]);
+    }
+    if ((control->motor.set_wheel_targets == 0) ||
+        !control->motor.set_wheel_targets(control->motor.context, target)) {
+        enter_fault(control, P0_FAULT_LOCAL);
+        return P0_STATUS_TARGET_REJECTED;
+    }
+    for (i = 0; i < P0_WHEEL_COUNT; ++i) {
         control->wheel_target[i] = target[i];
     }
     control->last_sequence = packet->sequence;
     control->last_command_ms = now_ms;
-    if (control->motor.apply_wheel_targets != 0) {
-        control->motor.apply_wheel_targets(control->motor.context, target);
-    }
     return P0_STATUS_OK;
 }
 
@@ -280,6 +339,8 @@ p0_status_t p0_control_handle_packet(
         return handle_arm(control, packet, now_ms);
     case P0_MSG_WHEEL_TARGET:
         return handle_wheel_target(control, packet, now_ms);
+    case P0_MSG_M2A_CALIBRATION_HOLD:
+        return handle_m2a_calibration_hold(control, packet, now_ms);
     default:
         enter_fault(control, P0_FAULT_PROTOCOL);
         return P0_STATUS_UNKNOWN_COMMAND;

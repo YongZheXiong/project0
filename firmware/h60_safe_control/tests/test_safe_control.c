@@ -18,10 +18,17 @@
 typedef struct {
     unsigned int zero_calls;
     unsigned int apply_calls;
+    unsigned int prepare_calls;
+    unsigned int calibration_calls;
     p0_control_t *control;
     p0_state_t state_seen_on_zero;
     int16_t last_target[4];
 } motor_stub_t;
+
+static p0_packet_t make_command(
+    uint8_t type,
+    uint32_t session,
+    uint32_t sequence);
 
 static void stub_zero(void *context)
 {
@@ -32,7 +39,7 @@ static void stub_zero(void *context)
     }
 }
 
-static void stub_apply(void *context, const int16_t target[4])
+static bool stub_apply(void *context, const int16_t target[4])
 {
     motor_stub_t *stub = (motor_stub_t *)context;
     size_t i;
@@ -40,6 +47,39 @@ static void stub_apply(void *context, const int16_t target[4])
     for (i = 0; i < 4; ++i) {
         stub->last_target[i] = target[i];
     }
+    return true;
+}
+
+static bool stub_prepare(void *context, uint32_t now_ms)
+{
+    motor_stub_t *stub = (motor_stub_t *)context;
+    (void)now_ms;
+    ++stub->prepare_calls;
+    return true;
+}
+
+static bool stub_calibration_hold(
+    void *context,
+    uint8_t channel,
+    int8_t direction,
+    uint16_t duty_permille,
+    uint32_t now_ms)
+{
+    motor_stub_t *stub = (motor_stub_t *)context;
+    (void)now_ms;
+    ++stub->calibration_calls;
+    return (channel < 4U) &&
+           ((direction == -1) || (direction == 0) || (direction == 1)) &&
+           (((direction == 0) && (duty_permille == 0)) ||
+            ((direction != 0) && (duty_permille > 0) &&
+             (duty_permille <= 120U)));
+}
+
+static bool stub_reject(void *context, const int16_t target[4])
+{
+    (void)context;
+    (void)target;
+    return false;
 }
 
 static void init_control(
@@ -51,10 +91,59 @@ static void init_control(
     memset(stub, 0, sizeof(*stub));
     stub->control = control;
     ops.force_zero = stub_zero;
-    ops.apply_wheel_targets = stub_apply;
+    ops.prepare_arm = stub_prepare;
+    ops.set_wheel_targets = stub_apply;
+    ops.calibration_hold = stub_calibration_hold;
     ops.context = stub;
     p0_control_init(control, ops, motion_available);
     p0_control_finish_boot(control, true);
+}
+
+static void test_m2a_calibration_command_requires_live_armed_session(void)
+{
+    p0_control_t control;
+    motor_stub_t stub;
+    p0_packet_t heartbeat = make_command(P0_MSG_HEARTBEAT, 21, 1);
+    p0_packet_t arm = make_command(P0_MSG_ARM, 21, 2);
+    p0_packet_t hold = make_command(P0_MSG_M2A_CALIBRATION_HOLD, 21, 3);
+    p0_packet_t stop = make_command(P0_MSG_STOP, 0, 0);
+
+    init_control(&control, &stub, true);
+    hold.payload_length = UINT16_C(4);
+    hold.payload[0] = UINT8_C(2);
+    hold.payload[1] = UINT8_C(1);
+    p0_write_u16_le(&hold.payload[2], UINT16_C(50));
+
+    CHECK(p0_control_handle_packet(&control, &heartbeat, 10) == P0_STATUS_OK);
+    CHECK(p0_control_handle_packet(&control, &arm, 20) == P0_STATUS_OK);
+    CHECK(stub.prepare_calls == 1U);
+    CHECK(p0_control_handle_packet(&control, &hold, 30) == P0_STATUS_OK);
+    CHECK(stub.calibration_calls == 1U);
+    CHECK(control.last_command_ms == 30U);
+    CHECK(p0_control_handle_packet(&control, &stop, 31) == P0_STATUS_OK);
+    CHECK(control.state == P0_STATE_DISARMED);
+}
+
+static void test_m2a_calibration_rejection_faults_and_zeros(void)
+{
+    p0_control_t control;
+    motor_stub_t stub;
+    p0_packet_t heartbeat = make_command(P0_MSG_HEARTBEAT, 22, 1);
+    p0_packet_t arm = make_command(P0_MSG_ARM, 22, 2);
+    p0_packet_t hold = make_command(P0_MSG_M2A_CALIBRATION_HOLD, 22, 3);
+
+    init_control(&control, &stub, true);
+    CHECK(p0_control_handle_packet(&control, &heartbeat, 10) == P0_STATUS_OK);
+    CHECK(p0_control_handle_packet(&control, &arm, 20) == P0_STATUS_OK);
+    hold.payload_length = UINT16_C(4);
+    hold.payload[0] = UINT8_C(4);
+    hold.payload[1] = UINT8_C(1);
+    p0_write_u16_le(&hold.payload[2], UINT16_C(50));
+    CHECK(p0_control_handle_packet(&control, &hold, 30) ==
+          P0_STATUS_TARGET_REJECTED);
+    CHECK(control.state == P0_STATE_FAULT);
+    CHECK(control.fault == P0_FAULT_LOCAL);
+    CHECK(stub.state_seen_on_zero == P0_STATE_ARMED);
 }
 
 static p0_packet_t make_command(
@@ -253,6 +342,28 @@ static void test_arm_requires_fresh_heartbeat(void)
     CHECK(control.fault == P0_FAULT_TIMEOUT);
 }
 
+static void test_rejected_target_faults_before_ack_or_storage(void)
+{
+    p0_control_t control;
+    motor_stub_t stub;
+    p0_packet_t heartbeat = make_command(P0_MSG_HEARTBEAT, 12, 1);
+    p0_packet_t arm = make_command(P0_MSG_ARM, 12, 2);
+    p0_packet_t target = make_command(P0_MSG_WHEEL_TARGET, 12, 3);
+
+    init_control(&control, &stub, true);
+    control.motor.set_wheel_targets = stub_reject;
+    CHECK(p0_control_handle_packet(&control, &heartbeat, 10) == P0_STATUS_OK);
+    CHECK(p0_control_handle_packet(&control, &arm, 20) == P0_STATUS_OK);
+    target.payload_length = UINT16_C(8);
+    p0_write_i16_le(&target.payload[0], 100);
+    CHECK(p0_control_handle_packet(&control, &target, 30) ==
+          P0_STATUS_TARGET_REJECTED);
+    CHECK(control.state == P0_STATE_FAULT);
+    CHECK(control.fault == P0_FAULT_LOCAL);
+    CHECK(control.wheel_target[0] == 0);
+    CHECK(stub.state_seen_on_zero == P0_STATE_ARMED);
+}
+
 int main(void)
 {
     test_crc_known_vector();
@@ -263,6 +374,9 @@ int main(void)
     test_arm_target_stop_and_timeout();
     test_sequence_and_protocol_errors_fail_safe();
     test_arm_requires_fresh_heartbeat();
+    test_rejected_target_faults_before_ack_or_storage();
+    test_m2a_calibration_command_requires_live_armed_session();
+    test_m2a_calibration_rejection_faults_and_zeros();
     puts("PASS: H60 safe-control host tests");
     return EXIT_SUCCESS;
 }
