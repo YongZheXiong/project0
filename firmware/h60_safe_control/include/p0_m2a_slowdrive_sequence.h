@@ -1,0 +1,86 @@
+/* 内部寄存器事务；生产与离线定时器模型共用同一写入顺序。
+   调用者持有短PRIMASK事务并检查停止代次；本文件不等待、不发送串口。 */
+#ifndef P0_M2A_SLOWDRIVE_SEQUENCE_H
+#define P0_M2A_SLOWDRIVE_SEQUENCE_H
+
+#ifndef P0_SLOW_WRITE
+#define P0_SLOW_WRITE(reg, value) ((reg) = (value))
+#endif
+#define P0_SLOW_MB_PINS UINT32_C(0x6000)
+#define P0_SLOW_MB_MODES UINT32_C(0x3C000000)
+#define P0_SLOW_MB_OUTPUT UINT32_C(0x14000000)
+#define P0_SLOW_MB_AF UINT32_C(0x28000000)
+
+static void slow_io_prepare(void)
+{
+    /* 两脚仍GPIO00，复位TIM1后先装入配对11；更新事件不可见于引脚。 */
+    P0_SLOW_WRITE(RCC_APB2ENR, RCC_APB2ENR | RCC_APB2_TIM1EN);
+    (void)RCC_APB2ENR;
+    P0_SLOW_WRITE(RCC_APB2RSTR, RCC_APB2RSTR | UINT32_C(1));
+    P0_SLOW_WRITE(RCC_APB2RSTR, RCC_APB2RSTR & ~UINT32_C(1));
+    P0_SLOW_WRITE(TIM1->CR1, UINT32_C(0x80));
+    P0_SLOW_WRITE(TIM1->CR2, 0);
+    P0_SLOW_WRITE(TIM1->SMCR, 0);
+    P0_SLOW_WRITE(TIM1->DIER, 0);
+    P0_SLOW_WRITE(TIM1->BDTR, 0);
+    P0_SLOW_WRITE(TIM1->CCER, 0);
+    P0_SLOW_WRITE(TIM1->PSC, 0);
+    P0_SLOW_WRITE(TIM1->ARR, UINT32_C(3199));
+    P0_SLOW_WRITE(TIM1->RCR, 0);
+    P0_SLOW_WRITE(TIM1->CNT, 0);
+    P0_SLOW_WRITE(TIM1->CCMR1, 0);
+    P0_SLOW_WRITE(TIM1->CCMR2, UINT32_C(0x6868));
+    P0_SLOW_WRITE(TIM1->CCR1, 0);
+    P0_SLOW_WRITE(TIM1->CCR2, 0);
+    P0_SLOW_WRITE(TIM1->CCR3, UINT32_C(3200));
+    P0_SLOW_WRITE(TIM1->CCR4, UINT32_C(3200));
+    P0_SLOW_WRITE(TIM1->EGR, UINT32_C(1));
+    P0_SLOW_WRITE(TIM1->SR, 0);
+    P0_SLOW_WRITE(GPIOE->AFR[1],
+        (GPIOE->AFR[1] & ~UINT32_C(0x0FF00000)) | UINT32_C(0x01100000));
+    P0_SLOW_WRITE(GPIOE->OSPEEDR,
+        (GPIOE->OSPEEDR & ~P0_SLOW_MB_MODES) | P0_SLOW_MB_AF);
+    P0_SLOW_WRITE(TIM1->CCER, UINT32_C(0x1100));
+    P0_SLOW_WRITE(TIM1->BDTR, UINT32_C(0x8000));
+    P0_SLOW_WRITE(TIM1->CR1, UINT32_C(0x81));
+}
+
+static bool slow_io_ready(void)
+{
+    /* 读回只证明软件可见配置，不能替代引脚波形。 */
+    return TIM1->CCR3 == 3200 && TIM1->CCR4 == 3200 &&
+        TIM1->ARR == 3199 && TIM1->PSC == 0 && TIM1->RCR == 0 &&
+        TIM1->CCMR2 == UINT32_C(0x6868) && TIM1->CCER == UINT32_C(0x1100) &&
+        TIM1->CR1 == UINT32_C(0x81) && TIM1->BDTR == UINT32_C(0x8000) &&
+        TIM1->DIER == 0 &&
+        (GPIOE->MODER & P0_SLOW_MB_MODES) == P0_SLOW_MB_OUTPUT;
+}
+
+static void slow_io_wake(void)
+{
+    P0_SLOW_WRITE(GPIOE->BSRR, P0_SLOW_MB_PINS);
+    P0_SLOW_WRITE(GPIOE->MODER,
+        (GPIOE->MODER & ~P0_SLOW_MB_MODES) | P0_SLOW_MB_AF);
+}
+
+static void slow_io_run(void)
+{
+    /* CCR3永不改为0；只更新CCR4预装载，等待自然UEV，不发UG。 */
+    P0_SLOW_WRITE(TIM1->CCR4, UINT32_C(3040));
+}
+
+static void slow_io_off(void)
+{
+    /* 先配对接回GPIO00，后清比较寄存器，避免预装载清零次序影响焊盘。 */
+    P0_SLOW_WRITE(GPIOE->BSRR, P0_SLOW_MB_PINS << 16);
+    P0_SLOW_WRITE(GPIOE->MODER,
+        (GPIOE->MODER & ~P0_SLOW_MB_MODES) | P0_SLOW_MB_OUTPUT);
+    P0_SLOW_WRITE(TIM1->BDTR, 0);
+    P0_SLOW_WRITE(TIM1->CR1, 0);
+    P0_SLOW_WRITE(TIM1->CCER, 0);
+    P0_SLOW_WRITE(TIM1->DIER, 0);
+    P0_SLOW_WRITE(TIM1->CCR3, 0);
+    P0_SLOW_WRITE(TIM1->CCR4, 0);
+}
+
+#endif

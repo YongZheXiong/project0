@@ -1,4 +1,9 @@
 #include "p0_hw.h"
+#include "p0_build_config.h"
+#include "p0_m2a_calibration.h"
+#include "p0_motion.h"
+#include "p0_pwm_timing.h"
+#include "p0_uart_rx.h"
 
 #include <stdint.h>
 
@@ -27,6 +32,14 @@ typedef struct {
     volatile uint32_t CNT;
     volatile uint32_t PSC;
     volatile uint32_t ARR;
+    volatile uint32_t RCR;
+    volatile uint32_t CCR1;
+    volatile uint32_t CCR2;
+    volatile uint32_t CCR3;
+    volatile uint32_t CCR4;
+    volatile uint32_t BDTR;
+    volatile uint32_t DCR;
+    volatile uint32_t DMAR;
 } tim_regs_t;
 
 typedef struct {
@@ -72,6 +85,7 @@ typedef struct {
 
 #define RCC_CR REG32(UINT32_C(0x40023800))
 #define RCC_CFGR REG32(UINT32_C(0x40023808))
+#define RCC_APB2RSTR REG32(UINT32_C(0x40023824))
 #define RCC_AHB1ENR REG32(UINT32_C(0x40023830))
 #define RCC_APB1ENR REG32(UINT32_C(0x40023840))
 #define RCC_APB2ENR REG32(UINT32_C(0x40023844))
@@ -86,12 +100,19 @@ typedef struct {
 #define TIM3 ((tim_regs_t *)(uintptr_t)UINT32_C(0x40000400))
 #define TIM4 ((tim_regs_t *)(uintptr_t)UINT32_C(0x40000800))
 #define TIM5 ((tim_regs_t *)(uintptr_t)UINT32_C(0x40000C00))
+#define TIM12 ((tim_regs_t *)(uintptr_t)UINT32_C(0x40001800))
+#define TIM1 ((tim_regs_t *)(uintptr_t)UINT32_C(0x40010000))
+#define TIM9 ((tim_regs_t *)(uintptr_t)UINT32_C(0x40014000))
 
 #define USART3 ((usart_regs_t *)(uintptr_t)UINT32_C(0x40004800))
 #define ADC2 ((adc_regs_t *)(uintptr_t)UINT32_C(0x40012100))
 #define SYSTICK ((systick_regs_t *)(uintptr_t)UINT32_C(0xE000E010))
 
 #define SCB_AIRCR REG32(UINT32_C(0xE000ED0C))
+#define NVIC_ISER1 REG32(UINT32_C(0xE000E104))
+#define NVIC_ICPR1 REG32(UINT32_C(0xE000E284))
+#define NVIC_USART3_PRIORITY \
+    (*(volatile uint8_t *)(uintptr_t)UINT32_C(0xE000E427))
 
 #define IWDG_KR REG32(UINT32_C(0x40003000))
 #define IWDG_PR REG32(UINT32_C(0x40003004))
@@ -118,10 +139,14 @@ typedef struct {
 #define RCC_APB2_TIM9EN (UINT32_C(1) << 16)
 
 #define USART_SR_RXNE (UINT32_C(1) << 5)
+#define USART_SR_RX_ERROR_MASK UINT32_C(0xF) /* PE/FE/NE/ORE */
 #define USART_SR_TXE (UINT32_C(1) << 7)
 #define USART_CR1_RE (UINT32_C(1) << 2)
 #define USART_CR1_TE (UINT32_C(1) << 3)
+#define USART_CR1_RXNEIE (UINT32_C(1) << 5)
+#define USART_CR1_PEIE (UINT32_C(1) << 8)
 #define USART_CR1_UE (UINT32_C(1) << 13)
+#define USART_CR3_EIE UINT32_C(1)
 
 #define ADC_SR_EOC (UINT32_C(1) << 1)
 #define ADC_CR2_ADON (UINT32_C(1) << 0)
@@ -130,6 +155,65 @@ typedef struct {
 static volatile uint32_t g_millis;
 static volatile uint32_t g_main_epoch;
 static volatile uint32_t g_supervisor_trip;
+static p0_uart_rx_t g_uart_rx;
+static bool g_motor_pwm_initialized;
+static int8_t g_motor_direction[4];
+#if P0_M2A_SLOWDRIVE_BUILD != 0
+static volatile uint32_t g_motor_stop_generation;
+#include "p0_m2a_slowdrive_sequence.h"
+
+static uint32_t slow_irq_lock(void)
+{
+    uint32_t primask;
+    __asm volatile("mrs %0, primask\ncpsid i" : "=r"(primask) :: "memory");
+    return primask;
+}
+
+static void slow_irq_unlock(uint32_t primask)
+{
+    __asm volatile("dsb\nmsr primask, %0" :: "r"(primask) : "memory");
+}
+
+uint32_t p0_hw_motor_stop_generation(void)
+{
+    return g_motor_stop_generation;
+}
+
+static bool slow_permitted(const p0_m2a_slowdrive_t *s, uint32_t heartbeat)
+{
+    uint32_t now = g_millis;
+    return !g_supervisor_trip && !g_uart_rx.fault &&
+        !(USART3->SR & USART_SR_RX_ERROR_MASK) &&
+        (uint32_t)(now - heartbeat) <= UINT32_C(250) &&
+        p0_slow_fresh(s, now, g_motor_stop_generation);
+}
+
+bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
+    uint32_t last_heartbeat_ms)
+{
+    uint32_t primask = slow_irq_lock();
+    bool ok = slow_permitted(s, last_heartbeat_ms);
+    if (ok && action == P0_SLOW_WAKE && s->phase == P0_SLOW_WAKING &&
+        (GPIOE->MODER & P0_SLOW_MB_MODES) == P0_SLOW_MB_OUTPUT &&
+        !(GPIOE->ODR & P0_SLOW_MB_PINS)) {
+        slow_io_prepare();
+        ok = slow_io_ready() && slow_permitted(s, last_heartbeat_ms);
+        if (ok) {
+            slow_io_wake();
+            s->wake_at_ms = g_millis;
+        }
+    } else if (ok && action == P0_SLOW_RUN && s->phase == P0_SLOW_ACTIVE &&
+               (uint32_t)(g_millis - s->wake_at_ms) >= P0_SLOW_WAKE_MS &&
+               (GPIOE->MODER & P0_SLOW_MB_MODES) == P0_SLOW_MB_AF) {
+        slow_io_run();
+    } else {
+        ok = false;
+    }
+    if (!ok) p0_hw_motor_force_safe(0);
+    slow_irq_unlock(primask);
+    return ok;
+}
+#endif
 static p0_hw_retained_fault_t g_retained_fault
     __attribute__((section(".noinit")));
 
@@ -190,8 +274,25 @@ void p0_hw_motor_force_safe(void *unused)
     uint32_t i;
 
     (void)unused;
+#if P0_M2A_SLOWDRIVE_BUILD != 0
+    uint32_t primask = slow_irq_lock();
+    ++g_motor_stop_generation;
+#endif
     RCC_AHB1ENR |= RCC_AHB1_GPIOBEN | RCC_AHB1_GPIOEEN;
     (void)RCC_AHB1ENR;
+
+#if P0_M2A_SLOWDRIVE_BUILD != 0
+    slow_io_off();
+#endif
+
+    TIM9->CCR1 = 0;
+    TIM9->CCR2 = 0;
+    TIM1->CCR1 = 0;
+    TIM1->CCR2 = 0;
+    TIM1->CCR3 = 0;
+    TIM1->CCR4 = 0;
+    TIM12->CCR1 = 0;
+    TIM12->CCR2 = 0;
 
     for (i = 0; i < (sizeof(port_e_pins) / sizeof(port_e_pins[0])); ++i) {
         gpio_config_output_low(GPIOE, port_e_pins[i]);
@@ -201,14 +302,143 @@ void p0_hw_motor_force_safe(void *unused)
 
     RCC_APB1ENR &= ~RCC_APB1_TIM12EN;
     RCC_APB2ENR &= ~(RCC_APB2_TIM1EN | RCC_APB2_TIM9EN);
+    g_motor_direction[0] = 0;
+    g_motor_direction[1] = 0;
+    g_motor_direction[2] = 0;
+    g_motor_direction[3] = 0;
+    g_motor_pwm_initialized = false;
+#if P0_M2A_SLOWDRIVE_BUILD != 0
+    slow_irq_unlock(primask);
+#endif
 }
 
-void p0_hw_motor_apply_targets(void *unused, const int16_t target[4])
+#if P0_MOTION_OUTPUT_COMPILED != 0 && P0_M2A_SLOWDRIVE_BUILD == 0
+
+#define P0_TIM_CCMR_PWM_PRELOAD UINT32_C(0x6868)
+#define P0_TIM_CR1_ARPE_CEN UINT32_C(0x81)
+#define P0_TIM_BDTR_MOE (UINT32_C(1) << 15)
+
+static void motor_pwm_timer_init(void)
+{
+    RCC_AHB1ENR |= RCC_AHB1_GPIOBEN | RCC_AHB1_GPIOEEN;
+    RCC_APB1ENR |= RCC_APB1_TIM12EN;
+    RCC_APB2ENR |= RCC_APB2_TIM1EN | RCC_APB2_TIM9EN;
+    (void)RCC_APB2ENR;
+
+    gpio_config_af(GPIOE, 5, 3, false);
+    gpio_config_af(GPIOE, 6, 3, false);
+    gpio_config_af(GPIOE, 9, 1, false);
+    gpio_config_af(GPIOE, 11, 1, false);
+    gpio_config_af(GPIOE, 13, 1, false);
+    gpio_config_af(GPIOE, 14, 1, false);
+    gpio_config_af(GPIOB, 14, 9, false);
+    gpio_config_af(GPIOB, 15, 9, false);
+
+    TIM9->CR1 = 0;
+    TIM1->CR1 = 0;
+    TIM12->CR1 = 0;
+    TIM9->PSC = 0;
+    TIM1->PSC = 0;
+    TIM12->PSC = 0;
+    TIM9->ARR = P0_MOTOR_PWM_PERIOD_COUNTS - UINT32_C(1);
+    TIM1->ARR = P0_MOTOR_PWM_PERIOD_COUNTS - UINT32_C(1);
+    TIM12->ARR = P0_MOTOR_PWM_PERIOD_COUNTS - UINT32_C(1);
+    TIM9->CCR1 = 0;
+    TIM9->CCR2 = 0;
+    TIM1->CCR1 = 0;
+    TIM1->CCR2 = 0;
+    TIM1->CCR3 = 0;
+    TIM1->CCR4 = 0;
+    TIM12->CCR1 = 0;
+    TIM12->CCR2 = 0;
+    TIM9->CCMR1 = P0_TIM_CCMR_PWM_PRELOAD;
+    TIM1->CCMR1 = P0_TIM_CCMR_PWM_PRELOAD;
+    TIM1->CCMR2 = P0_TIM_CCMR_PWM_PRELOAD;
+    TIM12->CCMR1 = P0_TIM_CCMR_PWM_PRELOAD;
+    TIM9->CCER = UINT32_C(0x11);
+    TIM1->CCER = UINT32_C(0x1111);
+    TIM12->CCER = UINT32_C(0x11);
+    TIM1->BDTR = P0_TIM_BDTR_MOE;
+    TIM9->EGR = UINT32_C(1);
+    TIM1->EGR = UINT32_C(1);
+    TIM12->EGR = UINT32_C(1);
+    TIM9->CR1 = P0_TIM_CR1_ARPE_CEN;
+    TIM1->CR1 = P0_TIM_CR1_ARPE_CEN;
+    TIM12->CR1 = P0_TIM_CR1_ARPE_CEN;
+    g_motor_pwm_initialized = true;
+}
+
+static void apply_pair(
+    uint8_t channel,
+    int16_t signed_output,
+    volatile uint32_t *ccr_1,
+    volatile uint32_t *ccr_2)
+{
+    uint16_t input_1;
+    uint16_t input_2;
+    int8_t direction = (signed_output > 0) ? INT8_C(1) :
+                       ((signed_output < 0) ? INT8_C(-1) : INT8_C(0));
+
+    if ((direction != 0) && (g_motor_direction[channel] != 0) &&
+        (direction != g_motor_direction[channel])) {
+        signed_output = 0;
+        direction = 0;
+    }
+    p0_motion_output_pair(signed_output, &input_1, &input_2);
+    *ccr_1 = p0_pwm_compare_counts(input_1);
+    *ccr_2 = p0_pwm_compare_counts(input_2);
+    g_motor_direction[channel] = direction;
+}
+
+void p0_hw_motor_apply_pwm(void *unused, const int16_t output_permille[4])
+{
+    uint8_t i;
+    uint8_t nonzero = 0;
+
+    (void)unused;
+#if P0_M2A_CALIBRATION_BUILD != 0
+    for (i = 0; i < UINT8_C(4); ++i) {
+        int32_t value = output_permille[i];
+        uint32_t magnitude = (value < 0) ?
+                                 (uint32_t)(-value) : (uint32_t)value;
+        if (value != 0) {
+            ++nonzero;
+        }
+        if ((magnitude > P0_M2A_MAX_DUTY_PERMILLE) ||
+            ((magnitude != 0) &&
+             (magnitude < P0_M2A_MIN_DUTY_PERMILLE))) {
+            p0_hw_motor_force_safe(0);
+            return;
+        }
+    }
+    if (nonzero > UINT8_C(1)) {
+        p0_hw_motor_force_safe(0);
+        return;
+    }
+#else
+    (void)i;
+    (void)nonzero;
+#endif
+    if (!g_motor_pwm_initialized) {
+        motor_pwm_timer_init();
+    }
+    /* Protocol/encoder order is the schematic connector order MA, MB, MC, MD. */
+    apply_pair(0, output_permille[0], &TIM1->CCR1, &TIM1->CCR2);
+    apply_pair(1, output_permille[1], &TIM1->CCR3, &TIM1->CCR4);
+    apply_pair(2, output_permille[2], &TIM9->CCR1, &TIM9->CCR2);
+    apply_pair(3, output_permille[3], &TIM12->CCR1, &TIM12->CCR2);
+}
+
+#else
+
+void p0_hw_motor_apply_pwm(void *unused, const int16_t output_permille[4])
 {
     (void)unused;
-    (void)target;
+    (void)output_permille;
     p0_hw_motor_force_safe(0);
 }
+
+#endif
 
 void p0_hw_early_safe_init(void)
 {
@@ -235,10 +465,16 @@ static void uart3_init(void)
     gpio_config_af(GPIOD, 9, 7, true);
 
     USART3->CR1 = 0;
+    p0_uart_rx_init(&g_uart_rx);
     USART3->BRR = UINT32_C(139);
     USART3->CR2 = 0;
-    USART3->CR3 = 0;
-    USART3->CR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE;
+    USART3->CR3 = USART_CR3_EIE;
+    /* STM32F407 USART3为IRQ39；优先级低于默认优先级的SysTick。 */
+    NVIC_USART3_PRIORITY = UINT8_C(0x40);
+    NVIC_ICPR1 = UINT32_C(1) << 7;
+    NVIC_ISER1 = UINT32_C(1) << 7;
+    USART3->CR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE |
+                  USART_CR1_RXNEIE | USART_CR1_PEIE;
 }
 
 static void encoder_timer_init(tim_regs_t *timer, uint32_t period)
@@ -329,11 +565,30 @@ bool p0_hw_supervisor_tripped(void)
 
 bool p0_hw_uart_read_byte(uint8_t *byte)
 {
-    if ((USART3->SR & USART_SR_RXNE) == 0) {
-        return false;
+    return p0_uart_rx_pop(&g_uart_rx, byte);
+}
+
+bool p0_hw_uart_take_rx_fault(void)
+{
+    uint32_t primask;
+    bool fault;
+
+    __asm volatile("mrs %0, primask\ncpsid i" : "=r"(primask) :: "memory");
+    fault = p0_uart_rx_take_fault(&g_uart_rx);
+    __asm volatile("msr primask, %0" :: "r"(primask) : "memory");
+    return fault;
+}
+
+void USART3_IRQHandler(void)
+{
+    uint32_t status = USART3->SR;
+
+    if ((status & (USART_SR_RXNE | USART_SR_RX_ERROR_MASK)) != 0) {
+        /* 必须先读SR再读DR以清RXNE和接收错误；ISR不解析命令/等待TX。 */
+        uint8_t byte = (uint8_t)USART3->DR;
+        p0_uart_rx_push_isr(&g_uart_rx, byte,
+            (status & USART_SR_RX_ERROR_MASK) != 0);
     }
-    *byte = (uint8_t)USART3->DR;
-    return true;
 }
 
 void p0_hw_uart_write(const uint8_t *data, size_t length)

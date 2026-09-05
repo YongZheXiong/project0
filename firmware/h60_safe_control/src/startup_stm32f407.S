@@ -20,6 +20,7 @@
 .extern UsageFault_Handler
 .extern Default_Handler
 .extern SysTick_Handler
+.extern USART3_IRQHandler
 
 .section .isr_vector,"a",%progbits
 .type g_pfnVectors, %object
@@ -40,9 +41,12 @@ g_pfnVectors:
     .word 0
     .word Default_Handler
     .word SysTick_Handler
-    /* STM32F407 peripheral IRQ 0..81. No peripheral IRQ is enabled in v0.1,
-       but every unexpected IRQ still has an explicit fail-safe destination. */
-    .rept 82
+    /* USART3接收使用IRQ39；其他外设异常仍进入安全故障处理。 */
+    .rept 39
+    .word Default_Handler
+    .endr
+    .word USART3_IRQHandler
+    .rept 42
     .word Default_Handler
     .endr
 .size g_pfnVectors, .-g_pfnVectors

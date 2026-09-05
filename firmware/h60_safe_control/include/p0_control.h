@@ -37,12 +37,20 @@ typedef enum {
     P0_STATUS_BAD_PAYLOAD = 6,
     P0_STATUS_UNKNOWN_COMMAND = 7,
     P0_STATUS_MOTION_LOCKED = 8,
-    P0_STATUS_FAULT_LATCHED = 9
+    P0_STATUS_FAULT_LATCHED = 9,
+    P0_STATUS_TARGET_REJECTED = 10
 } p0_status_t;
 
 typedef struct {
     void (*force_zero)(void *context);
-    void (*apply_wheel_targets)(void *context, const int16_t target[4]);
+    bool (*prepare_arm)(void *context, uint32_t now_ms);
+    bool (*set_wheel_targets)(void *context, const int16_t target[4]);
+    bool (*calibration_hold)(
+        void *context,
+        uint8_t channel,
+        int8_t direction,
+        uint16_t duty_permille,
+        uint32_t now_ms);
     void *context;
 } p0_motor_ops_t;
 

@@ -7,6 +7,7 @@ from p0_base_bridge.h60_protocol import (
     MSG_ACK,
     MSG_ARM,
     MSG_HEARTBEAT,
+    MSG_M2A_CALIBRATION_HOLD,
     MSG_NACK,
     MSG_STOP,
     MSG_TELEMETRY,
@@ -22,6 +23,7 @@ from p0_base_bridge.h60_protocol import (
     decode_command_status,
     decode_telemetry,
     differential_targets_mmps,
+    encode_m2a_calibration_hold,
     encode_packet,
 )
 
@@ -128,6 +130,7 @@ class CodecTest(unittest.TestCase):
         self.assertEqual(telemetry.firmware_version, (0, 1, 1))
         self.assertEqual(telemetry.boot_fault_code, 0x12345678)
         self.assertTrue(telemetry.motion_output_available)
+        self.assertEqual(telemetry.capabilities, 0)
 
         status = decode_command_status(
             response_packet(
@@ -140,6 +143,22 @@ class CodecTest(unittest.TestCase):
         )
         self.assertTrue(status.nack)
         self.assertEqual(status.status, STATUS_MOTION_LOCKED)
+
+    def test_m2a_calibration_hold_encoding_is_single_channel_and_bounded(self):
+        self.assertEqual(
+            encode_m2a_calibration_hold(2, -1, 120),
+            b"\x02\xff\x78\x00",
+        )
+        packet = Packet(
+            MSG_M2A_CALIBRATION_HOLD,
+            7,
+            9,
+            encode_m2a_calibration_hold(0, 0, 0),
+        )
+        self.assertEqual(len(encode_packet(packet)), 22)
+        for args in ((4, 1, 50), (0, 2, 50), (0, 1, 121), (0, 0, 1)):
+            with self.assertRaises(ValueError):
+                encode_m2a_calibration_hold(*args)
 
     def test_differential_mapping_uses_integer_mm_per_second(self):
         targets = differential_targets_mmps(

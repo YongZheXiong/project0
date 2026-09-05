@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "p0_m2a_slowdrive.h"
 
 #define P0_HW_FAULT_MAGIC UINT32_C(0x50304654)
 
@@ -27,13 +28,17 @@ typedef struct {
 void p0_hw_early_safe_init(void);
 void p0_hw_init(void);
 void p0_hw_motor_force_safe(void *unused);
-void p0_hw_motor_apply_targets(void *unused, const int16_t target[4]);
+void p0_hw_motor_apply_pwm(void *unused, const int16_t output_permille[4]);
+uint32_t p0_hw_motor_stop_generation(void);
+bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
+    uint32_t last_heartbeat_ms);
 
 uint32_t p0_hw_millis(void);
 void p0_hw_main_alive(void);
 bool p0_hw_supervisor_tripped(void);
 
 bool p0_hw_uart_read_byte(uint8_t *byte);
+bool p0_hw_uart_take_rx_fault(void);
 void p0_hw_uart_write(const uint8_t *data, size_t length);
 
 void p0_hw_encoder_read(int32_t count[4]);
@@ -53,6 +58,7 @@ void p0_hw_fault_trap(uint32_t code) __attribute__((noreturn));
     } while (0)
 
 void SysTick_Handler(void);
+void USART3_IRQHandler(void);
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void MemManage_Handler(void);
