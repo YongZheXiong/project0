@@ -29,6 +29,19 @@ uint8 last_response_status
 bool last_response_nack
 uint32 protocol_error_count
 
+# Evidence-bound H60 engineering observation. These fields are relative to the
+# current serial connection and are not distance, velocity or odometry data.
+bool engineering_encoder_ready
+string engineering_encoder_profile
+int64 engineering_forward_count_lf
+int64 engineering_forward_count_lr
+int64 engineering_forward_count_rf
+int64 engineering_forward_count_rr
+float64 engineering_revolutions_lf
+float64 engineering_revolutions_lr
+float64 engineering_revolutions_rf
+float64 engineering_revolutions_rr
+
 # Deprecated STM32-era compatibility fields. They remain neutral until H6
 # confirms the H60 A-D physical mapping, directions, CPR and wheel geometry.
 bool estop_active

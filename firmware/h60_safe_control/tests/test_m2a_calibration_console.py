@@ -444,6 +444,31 @@ class OperatorGateTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertGreaterEqual(trace['countdown_finished_monotonic'] - trace['operator_enter_monotonic'], 3)
 
+    def test_single_mb_lf_topology_prompt_does_not_claim_four_lines(self):
+        now = [0.0]
+        trace = {}
+        stdin = mock.Mock()
+        stdin.fileno.return_value = 42
+        args = argparse.Namespace(
+            channel='MB', direction='plus', duty_permille=100,
+            max_session_ms=600, one_shot_profile=console.slowdrive.H6_PROFILE,
+            field_topology='single_mb_lf_only',
+        )
+        output = io.StringIO()
+        with mock.patch.object(console, '_operator_key', return_value='q'), \
+                mock.patch.object(console.time, 'monotonic', side_effect=lambda: now[0]), \
+                mock.patch.object(console.sys, 'stdin', stdin), \
+                mock.patch.object(console.termios, 'tcgetattr', return_value=['original']), \
+                mock.patch.object(console.termios, 'tcsetattr'), \
+                mock.patch.object(console.tty, 'setcbreak'), \
+                contextlib.redirect_stdout(output):
+            with self.assertRaises(console.CalibrationConsoleError):
+                console._prepare_one_shot(args, trace)
+        rendered = output.getvalue()
+        self.assertIn('只把左前轮电机接到MB', rendered)
+        self.assertIn('MA/MC/MD保持空', rendered)
+        self.assertNotIn('四路最终电机线均已接入', rendered)
+
     def test_timeout_cancel_double_enter_eof_or_interrupt_never_finish_countdown(self):
         for events in ([None], ['q'], ['\n', 'q'], ['\n', '\n'],
                        ['\n', console.CalibrationConsoleError('terminal input closed')], ['\n', KeyboardInterrupt()]):

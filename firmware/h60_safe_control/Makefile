@@ -6,7 +6,9 @@ HOST_BUILD := $(BUILD)/host
 ARM_BUILD := $(BUILD)/arm
 
 COMMON_SRC := src/p0_crc32.c src/p0_protocol.c src/p0_control.c \
-	src/p0_motion.c src/p0_m2a_calibration.c src/p0_uart_rx.c src/p0_m2a_slowdrive.c
+	src/p0_motion.c src/p0_motion_scheduler.c src/p0_m2a_calibration.c \
+	src/p0_uart_rx.c src/p0_m2a_slowdrive.c \
+	src/p0_iwdg_diagnostic.c
 ARM_SRC := $(COMMON_SRC) src/p0_runtime.c src/p0_manifest.c \
 	src/p0_hw_stm32f407.c src/main.c
 ARM_ASM := src/startup_stm32f407.S
@@ -29,7 +31,12 @@ ARM_DEFINES ?= -DP0_TARGET_STM32F407=1 \
 	-DP0_MOTION_OUTPUT_COMPILED=0 \
 	-DP0_OFFLINE_MOTION_AUDIT_BUILD=0 \
 	-DP0_MOTION_CALIBRATION_VALID=0 \
-	-DP0_M2A_CALIBRATION_BUILD=0
+	-DP0_M2A_CALIBRATION_BUILD=0 \
+	-DP0_M2A_SLOWDRIVE_BUILD=0 \
+	-DP0_H6_CHARACTERIZATION_BUILD=0 \
+	-DP0_H6_EXTENDED_WINDOW_BUILD=0 \
+	-DP0_W2_FOUR_WHEEL_PROFILE_BUILD=0 \
+	-DP0_IWDG_DIAGNOSTIC_BUILD=0
 ARM_CFLAGS := $(ARM_CPU) -std=c11 -Os -g0 -Wall -Wextra -Werror \
 	-ffreestanding -fno-builtin -fdata-sections -ffunction-sections \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables -Iinclude \
@@ -40,10 +47,14 @@ ARM_LDFLAGS := $(ARM_CPU) -nostdlib -Wl,--gc-sections -Wl,-z,noexecstack \
 
 HOST_TEST := $(HOST_BUILD)/test_safe_control
 MOTION_TEST := $(HOST_BUILD)/test_motion_control
+MOTION_SCHEDULER_TEST := $(HOST_BUILD)/test_motion_scheduler
+MOTION_INTEGRATION_TEST := $(HOST_BUILD)/test_motion_integration
+MOTION_MAIN_TEST := $(HOST_BUILD)/test_motion_main
 M2A_TEST := $(HOST_BUILD)/test_m2a_calibration
 UART_TEST := $(HOST_BUILD)/test_uart_rx
 UART_MAIN_TEST := $(HOST_BUILD)/test_uart_main
 PWM_TIMING_TEST := $(HOST_BUILD)/test_pwm_timing
+IWDG_DIAGNOSTIC_TEST := $(HOST_BUILD)/test_iwdg_diagnostic
 ARM_ELF := $(ARM_BUILD)/$(PROJECT).elf
 ARM_BIN := $(ARM_BUILD)/$(PROJECT).bin
 ARM_HEX := $(ARM_BUILD)/$(PROJECT).hex
@@ -51,17 +62,26 @@ ARM_LIST := $(ARM_BUILD)/$(PROJECT).list
 
 .PHONY: all test bootloader-test source-safety-test sanitize firmware \
 	motion-audit-firmware m2a-calibration-firmware m2a-verify \
-	motion-lock-test verify clean toolchain
+	motion-lock-test iwdg-diagnostic-firmware verify clean toolchain
 
 all: test firmware verify
 
-test: $(HOST_TEST) $(MOTION_TEST) $(M2A_TEST) $(UART_TEST) $(UART_MAIN_TEST) $(PWM_TIMING_TEST)
+test: $(HOST_TEST) $(MOTION_TEST) $(MOTION_SCHEDULER_TEST) $(MOTION_INTEGRATION_TEST) $(MOTION_MAIN_TEST) $(M2A_TEST) $(UART_TEST) $(UART_MAIN_TEST) $(PWM_TIMING_TEST) $(IWDG_DIAGNOSTIC_TEST)
 	$(HOST_TEST)
 	$(MOTION_TEST)
+	$(MOTION_SCHEDULER_TEST)
+	$(MOTION_INTEGRATION_TEST)
+	$(MOTION_MAIN_TEST)
 	$(M2A_TEST)
 	$(UART_TEST)
 	$(UART_MAIN_TEST)
 	$(PWM_TIMING_TEST)
+	$(IWDG_DIAGNOSTIC_TEST)
+
+$(IWDG_DIAGNOSTIC_TEST): tests/test_iwdg_diagnostic.c \
+	src/p0_iwdg_diagnostic.c include/p0_iwdg_diagnostic.h include/p0_hw.h | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) tests/test_iwdg_diagnostic.c \
+		src/p0_iwdg_diagnostic.c -o $@
 
 $(PWM_TIMING_TEST): tests/test_pwm_timing.c src/p0_m2a_calibration.c \
 	include/p0_pwm_timing.h include/p0_m2a_calibration.h | $(HOST_BUILD)
@@ -86,9 +106,27 @@ sanitize: | $(HOST_BUILD)
 		-o $(HOST_BUILD)/test_motion_control_sanitize
 	$(HOST_BUILD)/test_motion_control_sanitize
 	$(HOST_CC) $(HOST_CFLAGS) -fsanitize=address,undefined \
+		tests/test_motion_scheduler.c src/p0_motion_scheduler.c \
+		-o $(HOST_BUILD)/test_motion_scheduler_sanitize
+	$(HOST_BUILD)/test_motion_scheduler_sanitize
+	$(HOST_CC) $(HOST_CFLAGS) -fsanitize=address,undefined \
+		tests/test_motion_integration.c src/p0_control.c src/p0_motion.c \
+		src/p0_protocol.c src/p0_crc32.c \
+		-o $(HOST_BUILD)/test_motion_integration_sanitize
+	$(HOST_BUILD)/test_motion_integration_sanitize
+	$(HOST_CC) $(HOST_CFLAGS) -fsanitize=address,undefined \
+		-DP0_MOTION_OUTPUT_COMPILED=1 -DP0_OFFLINE_MOTION_AUDIT_BUILD=1 \
+		tests/test_motion_main.c $(COMMON_SRC) \
+		-o $(HOST_BUILD)/test_motion_main_sanitize
+	$(HOST_BUILD)/test_motion_main_sanitize
+	$(HOST_CC) $(HOST_CFLAGS) -fsanitize=address,undefined \
 		tests/test_m2a_calibration.c src/p0_m2a_calibration.c \
 		-o $(HOST_BUILD)/test_m2a_calibration_sanitize
 	$(HOST_BUILD)/test_m2a_calibration_sanitize
+	$(HOST_CC) $(HOST_CFLAGS) -fsanitize=address,undefined \
+		tests/test_iwdg_diagnostic.c src/p0_iwdg_diagnostic.c \
+		-o $(HOST_BUILD)/test_iwdg_diagnostic_sanitize
+	$(HOST_BUILD)/test_iwdg_diagnostic_sanitize
 	$(HOST_CC) $(HOST_CFLAGS) -fsanitize=address,undefined \
 		tests/test_uart_rx.c src/p0_uart_rx.c src/p0_protocol.c src/p0_crc32.c \
 		-o $(HOST_BUILD)/test_uart_rx_sanitize
@@ -104,6 +142,20 @@ $(HOST_TEST): tests/test_safe_control.c $(COMMON_SRC) | $(HOST_BUILD)
 
 $(MOTION_TEST): tests/test_motion_control.c src/p0_motion.c | $(HOST_BUILD)
 	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
+
+$(MOTION_SCHEDULER_TEST): tests/test_motion_scheduler.c \
+		src/p0_motion_scheduler.c include/p0_motion_scheduler.h | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) tests/test_motion_scheduler.c \
+		src/p0_motion_scheduler.c -o $@
+
+$(MOTION_INTEGRATION_TEST): tests/test_motion_integration.c \
+	src/p0_control.c src/p0_motion.c src/p0_protocol.c src/p0_crc32.c | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
+
+$(MOTION_MAIN_TEST): tests/test_motion_main.c $(COMMON_SRC) | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) \
+		-DP0_MOTION_OUTPUT_COMPILED=1 -DP0_OFFLINE_MOTION_AUDIT_BUILD=1 \
+		tests/test_motion_main.c $(COMMON_SRC) -o $@
 
 $(M2A_TEST): tests/test_m2a_calibration.c src/p0_m2a_calibration.c | $(HOST_BUILD)
 	$(HOST_CC) $(HOST_CFLAGS) $^ -o $@
@@ -145,9 +197,42 @@ m2a-calibration-firmware:
 	@$(ARM_STRINGS) build/m2a/arm/$(PROJECT).elf | \
 		grep -q 'P0_H60_SAFE;FW=0.2.0-M2A;MOTION=1;CAL=0;M2A=1;TIMEOUT_MS=250'
 
+iwdg-diagnostic-firmware:
+	$(MAKE) BUILD=build/iwdg-diagnostic \
+		ARM_DEFINES="-DP0_TARGET_STM32F407=1 \
+		-DP0_MOTION_OUTPUT_COMPILED=0 \
+		-DP0_OFFLINE_MOTION_AUDIT_BUILD=0 \
+		-DP0_MOTION_CALIBRATION_VALID=0 \
+		-DP0_M2A_CALIBRATION_BUILD=0 \
+		-DP0_M2A_SLOWDRIVE_BUILD=0 \
+		-DP0_IWDG_DIAGNOSTIC_BUILD=1" firmware
+	@grep -q '<p0_hw_iwdg_diagnostic_stall>' \
+		build/iwdg-diagnostic/arm/$(PROJECT).list
+	@grep -q '<p0_hw_exception_diagnostic_trigger>' \
+		build/iwdg-diagnostic/arm/$(PROJECT).list
+	@sed -n '/<p0_hw_exception_diagnostic_trigger>:/,/^$$/p' \
+		build/iwdg-diagnostic/arm/$(PROJECT).list | \
+		grep -q '000f4240'
+	@sed -n '/<p0_hw_exception_diagnostic_trigger>:/,/^$$/p' \
+		build/iwdg-diagnostic/arm/$(PROJECT).list | \
+		grep -q '40004800'
+	@sed -n '/<p0_hw_exception_diagnostic_trigger>:/,/^$$/p' \
+		build/iwdg-diagnostic/arm/$(PROJECT).list | \
+		grep -q 'udf.*#0'
+	@$(ARM_STRINGS) build/iwdg-diagnostic/arm/$(PROJECT).elf | \
+		grep -q 'P0_H60_SAFE;FW=0.2.10-RESET-DIAG-R2;MOTION=0;CAL=0;M2A=0;TIMEOUT_MS=250;UART_RX=IRQ256-R1;IWDG_HARDFAULT_DIAG=1;TRIGGER_MS=1500;MOTION_LOCKED=1'
+
 # 独立目录；不覆盖板上M2A5K-R1对应的旧构建或回滚资产。
-.PHONY: m2a-slowdrive-firmware slowdrive-test
+.PHONY: m2a-slowdrive-firmware slowdrive-test \
+	h6-characterization-firmware h6-characterization-test \
+	h6-extended-window-firmware h6-extended-window-test \
+	w2-four-wheel-profile-firmware w2-four-wheel-profile-test \
+	w2-five-second-link-loss-firmware w2-five-second-link-loss-test
 SLOW_BUILD ?= build/m2a-slowdrive
+H6_BUILD ?= build/h6-characterization
+H6_R2_BUILD ?= build/h6-extended-window
+W2_BUILD ?= build/w2-four-wheel-profile
+W2_LINK5_BUILD ?= build/w2-five-second-link-loss-offline
 slowdrive-test:
 	python3 -m unittest -v tests/test_m2a_slowdrive_offline.py tests/test_m2a_slowdrive_console.py
 
@@ -155,9 +240,78 @@ m2a-slowdrive-firmware:
 	$(MAKE) BUILD=$(SLOW_BUILD) \
 		ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_MOTION_OUTPUT_COMPILED=1 \
 		-DP0_M2A_CALIBRATION_BUILD=1 -DP0_M2A_SLOWDRIVE_BUILD=1 \
+		-DP0_H6_CHARACTERIZATION_BUILD=0 \
 		-DP0_OFFLINE_MOTION_AUDIT_BUILD=0 -DP0_MOTION_CALIBRATION_VALID=0" firmware
 	@$(ARM_STRINGS) $(SLOW_BUILD)/arm/$(PROJECT).elf | \
 		grep -q 'FW=0.2.1-M2A-SLOW5K-MB-PLUS-50-R1'
+
+h6-characterization-test:
+	python3 -m unittest -v tests/test_m2a_slowdrive_offline.py \
+		tests/test_m2a_slowdrive_console.py tests/test_h6_parameter_analysis.py \
+		tests/test_h6_field_batch.py
+
+h6-characterization-firmware:
+	$(MAKE) BUILD=$(H6_BUILD) \
+		ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_MOTION_OUTPUT_COMPILED=1 \
+		-DP0_M2A_CALIBRATION_BUILD=1 -DP0_M2A_SLOWDRIVE_BUILD=1 \
+		-DP0_H6_CHARACTERIZATION_BUILD=1 -DP0_OFFLINE_MOTION_AUDIT_BUILD=0 \
+		-DP0_MOTION_CALIBRATION_VALID=0 -DP0_IWDG_DIAGNOSTIC_BUILD=0" firmware
+	@grep -q '<p0_hw_slow_commit>' $(H6_BUILD)/arm/$(PROJECT).list
+	@$(ARM_STRINGS) $(H6_BUILD)/arm/$(PROJECT).elf | \
+		grep -q 'P0_H60_SAFE;FW=0.2.11-H6-SINGLE-R1;MOTION=1;CAL=0;M2A=1;TIMEOUT_MS=250;UART_RX=IRQ256-R1;PWM=H6-SINGLE-5K-R1;WAKE_MS=3;STOP=GPIO00;ONE_CHANNEL_PER_ARM=1;MIN_DUTY=50;MAX_DUTY=120;HOLD_LEASE_MS=75;MAX_ARMED_MS=1000'
+
+h6-extended-window-test:
+	python3 -m unittest -v tests/test_m2a_slowdrive_offline.py \
+		tests/test_m2a_slowdrive_console.py
+
+h6-extended-window-firmware:
+	$(MAKE) BUILD=$(H6_R2_BUILD) \
+		ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_MOTION_OUTPUT_COMPILED=1 \
+		-DP0_M2A_CALIBRATION_BUILD=1 -DP0_M2A_SLOWDRIVE_BUILD=1 \
+		-DP0_H6_CHARACTERIZATION_BUILD=1 -DP0_H6_EXTENDED_WINDOW_BUILD=1 \
+		-DP0_OFFLINE_MOTION_AUDIT_BUILD=0 -DP0_MOTION_CALIBRATION_VALID=0 \
+		-DP0_IWDG_DIAGNOSTIC_BUILD=0" firmware
+	@grep -q '<p0_hw_slow_commit>' $(H6_R2_BUILD)/arm/$(PROJECT).list
+	@$(ARM_STRINGS) $(H6_R2_BUILD)/arm/$(PROJECT).elf | \
+		grep -q 'P0_H60_SAFE;FW=0.2.12-H6-SINGLE-R2;MOTION=1;CAL=0;M2A=1;TIMEOUT_MS=250;UART_RX=IRQ256-R1;PWM=H6-SINGLE-5K-R2;WAKE_MS=3;STOP=GPIO00;ONE_CHANNEL_PER_ARM=1;MC_PLUS_80_ONLY=1;HOLD_LEASE_MS=75;MAX_ARMED_MS=2500;ENVELOPE_MS=300,1200,300;HOST_NONZERO_MAX_MS=1800'
+
+w2-four-wheel-profile-test:
+	python3 -m unittest -v tests/test_m2a_slowdrive_offline.py
+
+w2-four-wheel-profile-firmware:
+	$(MAKE) BUILD=$(W2_BUILD) \
+		ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_MOTION_OUTPUT_COMPILED=1 \
+		-DP0_M2A_CALIBRATION_BUILD=1 -DP0_M2A_SLOWDRIVE_BUILD=1 \
+		-DP0_H6_CHARACTERIZATION_BUILD=1 -DP0_W2_FOUR_WHEEL_PROFILE_BUILD=1 \
+		-DP0_H6_EXTENDED_WINDOW_BUILD=0 -DP0_OFFLINE_MOTION_AUDIT_BUILD=0 \
+		-DP0_MOTION_CALIBRATION_VALID=0 -DP0_IWDG_DIAGNOSTIC_BUILD=0" firmware
+	@grep -q '<p0_hw_slow_commit>' $(W2_BUILD)/arm/$(PROJECT).list
+	@$(ARM_STRINGS) $(W2_BUILD)/arm/$(PROJECT).elf | \
+		grep -q 'P0_H60_SAFE;FW=0.2.13-W2-FWDREV-R1;MOTION=1;CAL=0;M2A=1;TIMEOUT_MS=250;UART_RX=IRQ256-R1;PWM=W2-FOUR-5K-R1;WAKE_MS=3;STOP=GPIO00;FOUR_CHANNEL_PROFILE=1;PROFILE_CHANNEL=240;FORWARD_SIGNS=-1,+1,-1,+1;DUTY=80;HOLD_LEASE_MS=75;MAX_ARMED_MS=1000;DIRECTION_CHANGE_REARM=1'
+
+# 隔离的离线候选；不复用已消费 W2 包的固件目录或版本标识。
+w2-five-second-link-loss-test:
+	@mkdir -p $(W2_LINK5_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) \
+		-DP0_MOTION_OUTPUT_COMPILED=1 -DP0_M2A_CALIBRATION_BUILD=1 \
+		-DP0_M2A_SLOWDRIVE_BUILD=1 -DP0_H6_CHARACTERIZATION_BUILD=1 \
+		-DP0_W2_FOUR_WHEEL_PROFILE_BUILD=1 \
+		-DP0_W2_FIVE_SECOND_LINK_LOSS_BUILD=1 \
+		tests/test_w2_five_second_link_loss.c src/p0_m2a_slowdrive.c \
+		-o $(W2_LINK5_BUILD)/test_w2_five_second_link_loss
+	$(W2_LINK5_BUILD)/test_w2_five_second_link_loss
+
+w2-five-second-link-loss-firmware:
+	$(MAKE) BUILD=$(W2_LINK5_BUILD) \
+		ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_MOTION_OUTPUT_COMPILED=1 \
+		-DP0_M2A_CALIBRATION_BUILD=1 -DP0_M2A_SLOWDRIVE_BUILD=1 \
+		-DP0_H6_CHARACTERIZATION_BUILD=1 -DP0_W2_FOUR_WHEEL_PROFILE_BUILD=1 \
+		-DP0_W2_FIVE_SECOND_LINK_LOSS_BUILD=1 \
+		-DP0_H6_EXTENDED_WINDOW_BUILD=0 -DP0_OFFLINE_MOTION_AUDIT_BUILD=0 \
+		-DP0_MOTION_CALIBRATION_VALID=0 -DP0_IWDG_DIAGNOSTIC_BUILD=0" firmware
+	@grep -q '<p0_hw_slow_commit>' $(W2_LINK5_BUILD)/arm/$(PROJECT).list
+	@$(ARM_STRINGS) $(W2_LINK5_BUILD)/arm/$(PROJECT).elf | \
+		grep -q 'P0_H60_SAFE;FW=0.2.14-W2-LINK5-OFFLINE-R1;MOTION=1;CAL=0;M2A=1;TIMEOUT_MS=250;UART_RX=IRQ256-R1;PWM=W2-FOUR-5K-R1;WAKE_MS=3;STOP=GPIO00;FOUR_CHANNEL_PROFILE=1;PROFILE_CHANNEL=240;FORWARD_SIGNS=-1,+1,-1,+1;DUTY=80;HOLD_LEASE_MS=75;MAX_ARMED_MS=5000;DIRECTION_CHANGE_REARM=1;LINK_LOSS_CANDIDATE=1'
 
 m2a-verify: test source-safety-test m2a-calibration-firmware
 	@grep -q '<p0_hw_motor_force_safe>' \
@@ -195,6 +349,22 @@ motion-lock-test: toolchain | $(ARM_BUILD)
 	else \
 		echo "PASS: malformed M2-A build rejected"; \
 	fi
+	@if $(ARM_GCC) $(ARM_CPU) -std=c11 -Iinclude \
+		-DP0_TARGET_STM32F407=1 \
+		-DP0_MOTION_OUTPUT_COMPILED=1 \
+		-DP0_OFFLINE_MOTION_AUDIT_BUILD=0 \
+		-DP0_MOTION_CALIBRATION_VALID=0 \
+		-DP0_M2A_CALIBRATION_BUILD=0 \
+		-DP0_M2A_SLOWDRIVE_BUILD=0 \
+		-DP0_IWDG_DIAGNOSTIC_BUILD=1 \
+		-c src/p0_manifest.c -o $(ARM_BUILD)/forbidden_iwdg_diag.o \
+		>/dev/null 2>&1; then \
+		echo "ERROR: IWDG diagnostic build with motion output was accepted"; \
+		rm -f $(ARM_BUILD)/forbidden_iwdg_diag.o; \
+		exit 1; \
+	else \
+		echo "PASS: motion-capable IWDG diagnostic build rejected"; \
+	fi
 
 toolchain:
 	@test -x "$(ARM_GCC)" || { echo "ARM GCC not found: $(ARM_GCC)"; exit 1; }
@@ -224,6 +394,18 @@ verify: test bootloader-test source-safety-test motion-lock-test firmware
 	@grep -q '<HardFault_Handler>' $(ARM_LIST)
 	@grep -q '<p0_hw_motor_force_safe>' $(ARM_LIST)
 	@grep -q '<SysTick_Handler>' $(ARM_LIST)
+	@if grep -q '<p0_hw_exception_diagnostic_trigger>' $(ARM_LIST); then \
+		echo "ERROR: diagnostic exception trigger leaked into production build"; \
+		exit 1; \
+	else \
+		echo "PASS: diagnostic exception trigger absent from production build"; \
+	fi
+	@if $(ARM_STRINGS) $(ARM_ELF) | grep -q 'RESET-DIAG-R2'; then \
+		echo "ERROR: diagnostic R2 manifest leaked into production build"; \
+		exit 1; \
+	else \
+		echo "PASS: diagnostic R2 manifest absent from production build"; \
+	fi
 	@$(ARM_STRINGS) $(ARM_ELF) | \
 		grep -q 'P0_H60_SAFE;FW=0.2.0-M1;MOTION=0;CAL=0;M2A=0;TIMEOUT_MS=250'
 	@shasum -a 256 $(ARM_ELF) $(ARM_BIN) $(ARM_HEX)

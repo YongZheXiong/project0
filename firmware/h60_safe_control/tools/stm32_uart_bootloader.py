@@ -18,7 +18,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Iterable, Optional, Protocol
+from typing import BinaryIO, Callable, Iterable, Optional, Protocol
 
 
 ACK = 0x79
@@ -40,6 +40,41 @@ class BootloaderError(RuntimeError):
     """A ROM-bootloader transaction or safety check failed."""
 
 
+class ReadMemoryError(BootloaderError):
+    """A READ MEMORY transaction failed at one identified protocol phase."""
+
+    def __init__(
+        self,
+        *,
+        address: int,
+        size: int,
+        phase: str,
+        cause: str,
+        phases: list[dict[str, object]],
+    ):
+        self.address = address
+        self.size = size
+        self.phase = phase
+        self.cause = cause
+        self.phases = tuple(phases)
+        super().__init__(
+            f"READ MEMORY failed at 0x{address:08X} during {phase}: {cause}"
+        )
+
+
+class FlashReadError(BootloaderError):
+    """A full-flash read stopped; completed bytes remain diagnostic evidence."""
+
+    def __init__(self, partial_image: bytes, transaction_error: ReadMemoryError):
+        self.partial_image = partial_image
+        self.completed_bytes = len(partial_image)
+        self.transaction_error = transaction_error
+        super().__init__(
+            f"full flash read stopped after {self.completed_bytes} bytes; "
+            f"no automatic transaction replay; {transaction_error}"
+        )
+
+
 class Transport(Protocol):
     def write(self, data: bytes) -> int: ...
 
@@ -56,22 +91,28 @@ def _xor_bytes(data: bytes) -> int:
 class STM32Bootloader:
     """Minimal read-only subset of ST's AN3155 UART protocol."""
 
-    def __init__(self, transport: Transport):
+    def __init__(
+        self,
+        transport: Transport,
+        trace: Optional[Callable[[dict[str, object]], None]] = None,
+    ):
         self.transport = transport
+        self.trace = trace
 
-    def _read_exact(self, size: int) -> bytes:
+    def _read_exact(self, size: int, context: str = "serial response") -> bytes:
         result = bytearray()
         while len(result) < size:
             block = self.transport.read(size - len(result))
             if not block:
                 raise BootloaderError(
-                    f"serial timeout: wanted {size} bytes, received {len(result)}"
+                    f"serial timeout during {context}: wanted {size} bytes, "
+                    f"received {len(result)}"
                 )
             result.extend(block)
         return bytes(result)
 
     def _expect_ack(self, context: str) -> None:
-        reply = self._read_exact(1)[0]
+        reply = self._read_exact(1, context)[0]
         if reply == NACK:
             raise BootloaderError(f"bootloader NACK during {context}")
         if reply != ACK:
@@ -109,16 +150,114 @@ class STM32Bootloader:
         if not (1 <= size <= READ_CHUNK):
             raise ValueError("ROM read size must be between 1 and 256 bytes")
         _validate_flash_range(address, size)
+        started_wall_ns = time.time_ns()
+        started_monotonic_ns = time.monotonic_ns()
+        phases: list[dict[str, object]] = []
 
-        self._command(CMD_READ_MEMORY, "READ MEMORY command")
+        def run_phase(name: str, action: Callable[[], object]) -> object:
+            phase_started_ns = time.monotonic_ns()
+            try:
+                result = action()
+            except (BootloaderError, OSError) as exc:
+                phases.append(
+                    {
+                        "phase": name,
+                        "status": "error",
+                        "elapsed_ns": time.monotonic_ns() - phase_started_ns,
+                        "error": str(exc),
+                    }
+                )
+                error = ReadMemoryError(
+                    address=address,
+                    size=size,
+                    phase=name,
+                    cause=str(exc),
+                    phases=phases,
+                )
+                self._emit_read_trace(
+                    address=address,
+                    size=size,
+                    status="error",
+                    started_wall_ns=started_wall_ns,
+                    started_monotonic_ns=started_monotonic_ns,
+                    phases=phases,
+                    error=error,
+                )
+                raise error from exc
+            phases.append(
+                {
+                    "phase": name,
+                    "status": "pass",
+                    "elapsed_ns": time.monotonic_ns() - phase_started_ns,
+                }
+            )
+            return result
+
+        command = bytes((CMD_READ_MEMORY, CMD_READ_MEMORY ^ 0xFF))
+        run_phase("command_write", lambda: self.transport.write(command))
+        run_phase(
+            "command_ack",
+            lambda: self._expect_ack("READ MEMORY command ACK"),
+        )
+
         encoded_address = address.to_bytes(4, "big")
-        self.transport.write(encoded_address + bytes((_xor_bytes(encoded_address),)))
-        self._expect_ack("READ MEMORY address")
+        address_packet = encoded_address + bytes((_xor_bytes(encoded_address),))
+        run_phase("address_write", lambda: self.transport.write(address_packet))
+        run_phase(
+            "address_ack",
+            lambda: self._expect_ack("READ MEMORY address ACK"),
+        )
 
         encoded_size = size - 1
-        self.transport.write(bytes((encoded_size, encoded_size ^ 0xFF)))
-        self._expect_ack("READ MEMORY length")
-        return self._read_exact(size)
+        length_packet = bytes((encoded_size, encoded_size ^ 0xFF))
+        run_phase("length_write", lambda: self.transport.write(length_packet))
+        run_phase(
+            "length_ack",
+            lambda: self._expect_ack("READ MEMORY length ACK"),
+        )
+        data = run_phase(
+            "data",
+            lambda: self._read_exact(size, "READ MEMORY data"),
+        )
+        assert isinstance(data, bytes)
+        phases[-1]["bytes_received"] = len(data)
+        self._emit_read_trace(
+            address=address,
+            size=size,
+            status="pass",
+            started_wall_ns=started_wall_ns,
+            started_monotonic_ns=started_monotonic_ns,
+            phases=phases,
+        )
+        return data
+
+    def _emit_read_trace(
+        self,
+        *,
+        address: int,
+        size: int,
+        status: str,
+        started_wall_ns: int,
+        started_monotonic_ns: int,
+        phases: list[dict[str, object]],
+        error: Optional[ReadMemoryError] = None,
+    ) -> None:
+        if self.trace is None:
+            return
+        record: dict[str, object] = {
+            "schema": "project0.stm32_rom_uart_read_transaction.v1",
+            "event": "read_memory_transaction",
+            "address": f"0x{address:08X}",
+            "size": size,
+            "status": status,
+            "started_wall_ns": started_wall_ns,
+            "elapsed_ns": time.monotonic_ns() - started_monotonic_ns,
+            "phases": [dict(item) for item in phases],
+        }
+        if error is not None:
+            record["failed_phase"] = error.phase
+            record["error"] = error.cause
+        self.trace(record)
 
 
 def _validate_flash_range(address: int, size: int) -> None:
@@ -274,7 +413,10 @@ class SerialAdapter:
 
 
 def connect_read_only(
-    port: str, profile_name: str, timeout: float
+    port: str,
+    profile_name: str,
+    timeout: float,
+    trace: Optional[Callable[[dict[str, object]], None]] = None,
 ) -> tuple[SerialAdapter, STM32Bootloader, AutoISPProfile]:
     adapter = SerialAdapter(port, timeout)
     if profile_name == "auto":
@@ -288,7 +430,7 @@ def connect_read_only(
         for profile in profiles:
             try:
                 adapter.enter_bootloader(profile)
-                client = STM32Bootloader(adapter)
+                client = STM32Bootloader(adapter, trace=trace)
                 client.sync()
                 return adapter, client, profile
             except BootloaderError as exc:
@@ -325,20 +467,11 @@ def read_factory_flash(
     image = bytearray()
     for offset in range(0, FLASH_SIZE, READ_CHUNK):
         address = FLASH_BASE + offset
-        last_error: Optional[Exception] = None
-        for _attempt in range(3):
-            try:
-                block = client.read_memory(address, READ_CHUNK)
-                image.extend(block)
-                last_error = None
-                break
-            except BootloaderError as exc:
-                last_error = exc
-                time.sleep(0.05)
-        if last_error is not None:
-            raise BootloaderError(
-                f"read failed at 0x{address:08X} after 3 attempts: {last_error}"
-            )
+        try:
+            block = client.read_memory(address, READ_CHUNK)
+        except ReadMemoryError as exc:
+            raise FlashReadError(bytes(image), exc) from exc
+        image.extend(block)
         if progress is not None and (
             len(image) % (32 * 1024) == 0 or len(image) == FLASH_SIZE
         ):
@@ -348,6 +481,22 @@ def read_factory_flash(
             )
             progress.flush()
     return bytes(image)
+
+
+class JsonlTrace:
+    """Write one complete READ MEMORY transaction per flushed JSONL record."""
+
+    def __init__(self, path: Path):
+        self.path = path.expanduser().resolve()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.stream = self.path.open("x", encoding="utf-8")
+
+    def __call__(self, record: dict[str, object]) -> None:
+        self.stream.write(json.dumps(record, sort_keys=True) + "\n")
+        self.stream.flush()
+
+    def close(self) -> None:
+        self.stream.close()
 
 
 def save_new_file(path: Path, data: bytes) -> None:
@@ -379,10 +528,38 @@ def _emit(record: dict[str, object]) -> None:
     print(json.dumps(record, indent=2, sort_keys=True))
 
 
+def _require_new_distinct_paths(paths: Iterable[Path]) -> None:
+    resolved = [path.expanduser().resolve() for path in paths]
+    if len(set(resolved)) != len(resolved):
+        raise BootloaderError("output, partial, and trace paths must be distinct")
+    for path in resolved:
+        if path.exists():
+            raise BootloaderError(f"refusing to overwrite existing file: {path}")
+
+
 def _run_hardware(args: argparse.Namespace) -> int:
-    adapter, client, profile = connect_read_only(
-        args.port, args.auto_isp_profile, args.timeout
-    )
+    trace: Optional[JsonlTrace] = None
+    partial_output: Optional[Path] = None
+    if args.command == "backup":
+        partial_output = args.partial_output or args.output.with_name(
+            args.output.name + ".partial"
+        )
+        trace_output = args.trace_output or args.output.with_name(
+            args.output.name + ".transactions.jsonl"
+        )
+        _require_new_distinct_paths((args.output, partial_output, trace_output))
+        trace = JsonlTrace(trace_output)
+    try:
+        adapter, client, profile = connect_read_only(
+            args.port,
+            args.auto_isp_profile,
+            args.timeout,
+            trace=trace,
+        )
+    except Exception:
+        if trace is not None:
+            trace.close()
+        raise
     try:
         device = inspect_bootloader(client)
         device["port"] = args.port
@@ -393,7 +570,17 @@ def _run_hardware(args: argparse.Namespace) -> int:
             _emit(device)
             return 0
 
-        image = read_factory_flash(client, progress=sys.stderr.buffer)
+        try:
+            image = read_factory_flash(client, progress=sys.stderr.buffer)
+        except FlashReadError as exc:
+            if exc.partial_image:
+                assert partial_output is not None
+                save_new_file(partial_output, exc.partial_image)
+                raise BootloaderError(
+                    f"{exc}; partial prefix saved to "
+                    f"{partial_output.expanduser().resolve()}"
+                ) from exc
+            raise
         validation = validate_factory_image(image)
         save_new_file(args.output, image)
         _emit(
@@ -408,8 +595,14 @@ def _run_hardware(args: argparse.Namespace) -> int:
         )
         return 0
     finally:
-        adapter.restore_run_lines(profile)
-        adapter.close()
+        try:
+            adapter.restore_run_lines(profile)
+        finally:
+            try:
+                adapter.close()
+            finally:
+                if trace is not None:
+                    trace.close()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -428,6 +621,8 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--timeout", type=float, default=0.75)
         if name == "backup":
             command.add_argument("--output", type=Path, required=True)
+            command.add_argument("--partial-output", type=Path)
+            command.add_argument("--trace-output", type=Path)
     return parser
 
 

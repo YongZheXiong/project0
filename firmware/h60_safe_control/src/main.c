@@ -1,8 +1,10 @@
 #include "p0_build_config.h"
 #include "p0_control.h"
 #include "p0_hw.h"
+#include "p0_iwdg_diagnostic.h"
 #include "p0_m2a_calibration.h"
 #include "p0_motion.h"
+#include "p0_motion_scheduler.h"
 #include "p0_protocol.h"
 
 #include <stdbool.h>
@@ -16,8 +18,12 @@ static p0_parser_t g_parser;
 static uint32_t g_telemetry_sequence;
 static uint32_t g_boot_fault_code;
 static p0_motion_controller_t g_motion;
+static p0_motion_scheduler_t g_motion_scheduler;
 static p0_m2a_calibration_t g_m2a_calibration;
 static bool g_motion_fault;
+#if P0_IWDG_DIAGNOSTIC_BUILD != 0
+static p0_iwdg_diagnostic_t g_iwdg_diagnostic;
+#endif
 #if P0_M2A_SLOWDRIVE_BUILD != 0
 static p0_m2a_slowdrive_t g_slow;
 static bool check_uart_rx_fault(void);
@@ -41,6 +47,7 @@ static void motion_force_zero(void *unused)
     p0_slow_reset(&g_slow);
 #endif
     p0_motion_reset(&g_motion);
+    p0_motion_scheduler_reset(&g_motion_scheduler);
     p0_m2a_calibration_reset(&g_m2a_calibration);
     p0_hw_motor_force_safe(0);
 }
@@ -127,22 +134,29 @@ static void motion_service(uint32_t now_ms)
 {
 #if (P0_MOTION_OUTPUT_COMPILED != 0) && \
     (P0_M2A_CALIBRATION_BUILD == 0)
-    static uint32_t last_motion_ms;
     int32_t encoder_count[4];
     int16_t output_permille[4];
+    p0_motion_schedule_result_t schedule_result;
 
     if (g_control.state != P0_STATE_ARMED) {
+        p0_motion_scheduler_reset(&g_motion_scheduler);
         return;
     }
-    if ((uint32_t)(now_ms - last_motion_ms) <
-        P0_MOTION_CONTROL_PERIOD_MS) {
+    schedule_result = p0_motion_scheduler_poll(&g_motion_scheduler, now_ms);
+    if (schedule_result == P0_MOTION_SCHEDULE_WAIT) {
         return;
     }
-    last_motion_ms = now_ms;
+    if (schedule_result == P0_MOTION_SCHEDULE_LATE) {
+        p0_control_local_fault(&g_control, P0_FAULT_LOCAL);
+        return;
+    }
     p0_hw_encoder_read(encoder_count);
     if (!p0_motion_step(&g_motion, encoder_count, output_permille)) {
+        p0_control_local_fault(&g_control, P0_FAULT_LOCAL);
+        return;
+    }
+    if (schedule_result == P0_MOTION_SCHEDULE_PRIME) {
         p0_hw_motor_force_safe(0);
-        g_motion_fault = true;
         return;
     }
     p0_hw_motor_apply_pwm(0, output_permille);
@@ -320,12 +334,19 @@ int main(void)
     (void)vin_raw;
     (void)vin_nominal_mv;
     p0_control_finish_boot(&g_control, self_test_ok);
-    if (g_boot_fault_code != P0_HW_FAULT_NONE) {
+    if ((g_boot_fault_code != P0_HW_FAULT_NONE) &&
+        (g_boot_fault_code != P0_HW_FAULT_IWDG_RESET)) {
         p0_control_local_fault(&g_control, P0_FAULT_LOCAL);
     }
 
     p0_hw_watchdog_start();
     last_telemetry_ms = p0_hw_millis();
+#if P0_IWDG_DIAGNOSTIC_BUILD != 0
+    p0_iwdg_diagnostic_init(
+        &g_iwdg_diagnostic,
+        g_boot_fault_code,
+        last_telemetry_ms);
+#endif
 
     for (;;) {
         uint8_t byte;
@@ -374,6 +395,15 @@ int main(void)
             last_telemetry_ms = now_ms;
             send_telemetry();
         }
+#if P0_IWDG_DIAGNOSTIC_BUILD != 0
+        if (p0_iwdg_diagnostic_should_stall(&g_iwdg_diagnostic, now_ms)) {
+            p0_hw_iwdg_diagnostic_stall();
+        }
+        if (p0_iwdg_diagnostic_should_trigger_exception(
+                &g_iwdg_diagnostic, now_ms)) {
+            p0_hw_exception_diagnostic_trigger();
+        }
+#endif
         p0_hw_watchdog_feed();
     }
 }

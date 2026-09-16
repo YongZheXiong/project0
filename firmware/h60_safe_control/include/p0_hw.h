@@ -16,7 +16,8 @@ typedef enum {
     P0_HW_FAULT_BUS = 4,
     P0_HW_FAULT_USAGE = 5,
     P0_HW_FAULT_DEFAULT_IRQ = 6,
-    P0_HW_FAULT_ASSERT = 7
+    P0_HW_FAULT_ASSERT = 7,
+    P0_HW_FAULT_IWDG_RESET = 8
 } p0_hw_fault_code_t;
 
 typedef struct {
@@ -46,6 +47,8 @@ bool p0_hw_vin_read(uint16_t *raw, uint16_t *nominal_mv);
 
 void p0_hw_watchdog_start(void);
 void p0_hw_watchdog_feed(void);
+void p0_hw_iwdg_diagnostic_stall(void) __attribute__((noreturn));
+void p0_hw_exception_diagnostic_trigger(void) __attribute__((noreturn));
 
 uint32_t p0_hw_take_retained_fault(void);
 void p0_hw_fault_trap(uint32_t code) __attribute__((noreturn));

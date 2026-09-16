@@ -43,7 +43,20 @@ static p0_packet_t packet(uint8_t type, uint32_t seq)
 {
     p0_packet_t p = {0}; p.type=type; p.session_id=77; p.sequence=seq;
     if (type == P0_MSG_M2A_CALIBRATION_HOLD) {
-        p.payload_length=4; p.payload[0]=1; p.payload[1]=1; p.payload[2]=50;
+        p.payload_length=4;
+#if P0_H6_CHARACTERIZATION_BUILD != 0
+#if P0_W2_FOUR_WHEEL_PROFILE_BUILD != 0
+        p.payload[0]=P0_W2_PROFILE_CHANNEL;
+        p.payload[1]=P0_W2_PROFILE_FORWARD_DIRECTION;
+        p.payload[2]=P0_W2_TARGET_DUTY_PERMILLE;
+#elif P0_H6_EXTENDED_WINDOW_BUILD != 0
+        p.payload[0]=2; p.payload[1]=1; p.payload[2]=80;
+#else
+        p.payload[0]=3; p.payload[1]=UINT8_C(0xFF); p.payload[2]=120;
+#endif
+#else
+        p.payload[0]=1; p.payload[1]=1; p.payload[2]=50;
+#endif
     }
     return p;
 }
@@ -82,7 +95,7 @@ int main(void)
             case 1: p=packet(P0_MSG_DISARM,4); (void)send(p); break;
             case 2: p.payload[1]=p.payload[2]=0; (void)send(p); break;
             case 3: now=77; (void)send(p); break;
-            case 4: now=1001; (void)send(p); break;
+            case 4: now=P0_SLOW_MAX_ARMED_MS+1; (void)send(p); break;
             case 5: p.sequence=3; (void)send(p); break;
             case 6: p.session_id=88; (void)send(p); break;
             case 7: rx_fault=true; service_safety(now); break;
@@ -101,7 +114,9 @@ int main(void)
     }
     setup(); race=true; now=4; service_safety(now);
     assert(output==0 && run_count==0 && g_control.state==P0_STATE_FAULT);
-    printf("PASS: actual main/protocol %u cancel cases and precommit interrupt\n",count);
+    printf("PASS: actual main/protocol %u cancel cases and precommit interrupt%s\n",
+           count, P0_W2_FOUR_WHEEL_PROFILE_BUILD ? " (W2 fixed four-wheel)" :
+           P0_H6_CHARACTERIZATION_BUILD ? " (H6 MD/minus/120)" : "");
     /* STOP后新会话必须重新唤醒；不依赖重启/遗留占空比，旧会话不自恢复。 */
     setup(); now=4; service_safety(now);
     for (unsigned cycle=0;cycle<3;++cycle) {

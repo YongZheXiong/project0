@@ -11,6 +11,7 @@ import rclpy
 from p0_interfaces.msg import ChassisCmd, ChassisStatus
 from rclpy.node import Node
 
+from .h60_observation import H60EngineeringEncoderObservation
 from .h60_protocol import (
     H60CommandPlanner,
     MSG_ACK,
@@ -63,6 +64,7 @@ class BaseBridgeNode(Node):
             ),
         )
         self._parser = PacketParser()
+        self._engineering_encoder = H60EngineeringEncoderObservation()
         self._comm_timeout_sec = float(self.get_parameter("comm_timeout_sec").value)
         if self._comm_timeout_sec <= 0.0:
             raise ValueError("comm_timeout_sec must be positive")
@@ -74,6 +76,7 @@ class BaseBridgeNode(Node):
         self._rx_queue: queue.SimpleQueue[Optional[bytes]] = queue.SimpleQueue()
         self._last_connect_attempt = 0.0
         self._last_rx_time = 0.0
+        self._last_engineering_encoder_time = 0.0
         self._last_cmd_time = 0.0
         self._latest_cmd: Optional[ChassisCmd] = None
         self._last_event = "startup"
@@ -111,7 +114,9 @@ class BaseBridgeNode(Node):
         self._serial = handle
         self._parser.reset()
         self._planner.reset()
+        self._engineering_encoder.reset()
         self._last_rx_time = 0.0
+        self._last_engineering_encoder_time = 0.0
         while True:
             try:
                 self._rx_queue.get_nowait()
@@ -140,7 +145,9 @@ class BaseBridgeNode(Node):
             if reader.is_alive():
                 self._reader = reader
         self._planner.reset()
+        self._engineering_encoder.reset()
         self._last_rx_time = 0.0
+        self._last_engineering_encoder_time = 0.0
 
     def _reader_loop(self) -> None:
         while not self._stop_reader.is_set():
@@ -258,7 +265,15 @@ class BaseBridgeNode(Node):
                     continue
                 try:
                     self._planner.observe(packet)
+                    if packet.message_type == MSG_TELEMETRY:
+                        telemetry = self._planner.telemetry
+                        if telemetry is None:
+                            raise ValueError("telemetry observation was not retained")
+                        self._engineering_encoder.observe(telemetry)
+                        self._last_engineering_encoder_time = time.monotonic()
                 except ValueError as exc:
+                    self._engineering_encoder.reset()
+                    self._last_engineering_encoder_time = 0.0
                     self._last_event = f"invalid_h60_payload:{exc}"
                     continue
                 self._last_rx_time = time.monotonic()
@@ -278,6 +293,14 @@ class BaseBridgeNode(Node):
         response = self._planner.last_response
         comm_ok = self._serial is not None and age < self._comm_timeout_sec
         gate = self._gate()
+        engineering_age = (
+            now - self._last_engineering_encoder_time
+            if self._last_engineering_encoder_time > 0.0
+            else float("inf")
+        )
+        engineering = self._engineering_encoder.status(
+            comm_ok and engineering_age < self._comm_timeout_sec
+        )
         motion_ready = bool(
             comm_ok
             and gate.motion_commands_enabled
@@ -324,6 +347,16 @@ class BaseBridgeNode(Node):
             + self._parser.stats.version_errors
             + self._parser.stats.crc_errors
         )
+        message.engineering_encoder_ready = engineering.ready
+        message.engineering_encoder_profile = engineering.profile_id
+        message.engineering_forward_count_lf = engineering.forward_total_counts.lf
+        message.engineering_forward_count_lr = engineering.forward_total_counts.lr
+        message.engineering_forward_count_rf = engineering.forward_total_counts.rf
+        message.engineering_forward_count_rr = engineering.forward_total_counts.rr
+        message.engineering_revolutions_lf = engineering.wheel_revolutions.lf
+        message.engineering_revolutions_lr = engineering.wheel_revolutions.lr
+        message.engineering_revolutions_rf = engineering.wheel_revolutions.rf
+        message.engineering_revolutions_rr = engineering.wheel_revolutions.rr
 
         # Legacy wheel fields stay neutral until H6 freezes A-D mapping,
         # direction, CPR and wheel geometry. They must not carry guessed data.

@@ -26,6 +26,42 @@ class SlowdriveConsoleTests(unittest.TestCase):
             user_message='OFFLINE TEST FIXTURE ONLY; no device authorization')))
         return args
 
+    def h6_arguments(self, root, channel='MA', direction='minus', duty=80):
+        args = self.arguments(root)
+        firmware = root/'fake.bin'
+        firmware.write_bytes(profile.H6_MANIFEST)
+        args.expected_sha256 = console.sha256_file(firmware)
+        args.channel = channel
+        args.direction = direction
+        args.duty_permille = duty
+        args.one_shot_profile = profile.H6_PROFILE
+        args.approval_code = profile.H6_APPROVAL_CODE
+        Path(args.run_approval).write_text(json.dumps(dict(
+            approved=True, profile=profile.H6_PROFILE, channel=channel,
+            direction=direction, duty_permille=duty, max_session_ms=600,
+            firmware_sha256=args.expected_sha256,
+            user_message='OFFLINE H6 TEST FIXTURE ONLY; no device authorization')))
+        return args
+
+    def h6_r2_arguments(self, root):
+        args = self.arguments(root)
+        firmware = root/'fake.bin'
+        firmware.write_bytes(profile.H6_R2_MANIFEST)
+        args.expected_sha256 = console.sha256_file(firmware)
+        args.channel = 'MC'
+        args.direction = 'plus'
+        args.duty_permille = 80
+        args.max_session_ms = profile.H6_R2_NONZERO_WINDOW_MS
+        args.one_shot_profile = profile.H6_R2_PROFILE
+        args.approval_code = profile.H6_R2_APPROVAL_CODE
+        Path(args.run_approval).write_text(json.dumps(dict(
+            approved=True, profile=profile.H6_R2_PROFILE, channel='MC',
+            direction='plus', duty_permille=80,
+            max_session_ms=profile.H6_R2_NONZERO_WINDOW_MS,
+            firmware_sha256=args.expected_sha256,
+            user_message='OFFLINE H6-R2 TEST FIXTURE ONLY; no device authorization')))
+        return args
+
     def test_exact_inputs_and_artifact(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.object(console.sys.stdin,'isatty',return_value=True):
@@ -56,6 +92,56 @@ class SlowdriveConsoleTests(unittest.TestCase):
                 port.assert_not_called()
             self.assertTrue(Path(args.run_approval+'.consumed').is_file())
 
+    def test_h6_exact_per_run_matrix_and_artifact_binding(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(console.sys.stdin, 'isatty', return_value=True):
+            root = Path(tmp)
+            for channel in console.CHANNELS:
+                for direction in console.DIRECTIONS:
+                    for duty in (50, 80, 120):
+                        args = self.h6_arguments(root, channel, direction, duty)
+                        self.assertEqual(console.validate_execution_inputs(args),
+                                         (console.CHANNELS[channel],
+                                          console.DIRECTIONS[direction]))
+            args = self.h6_arguments(root)
+            for key, value in [('duty_permille', 49), ('duty_permille', 121),
+                               ('max_session_ms', 601),
+                               ('approval_code', profile.APPROVAL_CODE),
+                               ('one_shot_profile', profile.PROFILE)]:
+                original = getattr(args, key)
+                setattr(args, key, value)
+                with self.subTest(key=key, value=value), \
+                        self.assertRaises(console.CalibrationConsoleError):
+                    console.validate_execution_inputs(args)
+                setattr(args, key, original)
+            Path(args.firmware_bin).write_bytes(profile.MANIFEST)
+            args.expected_sha256 = console.sha256_file(Path(args.firmware_bin))
+            with self.assertRaises(console.CalibrationConsoleError):
+                console.validate_execution_inputs(args)
+
+    def test_h6_r2_exact_mc_plus_80_envelope_binding(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(console.sys.stdin, 'isatty', return_value=True):
+            root = Path(tmp)
+            args = self.h6_r2_arguments(root)
+            self.assertEqual(console.validate_execution_inputs(args), (2, 1))
+            for key, value in [('channel', 'MA'), ('channel', 'MD'),
+                               ('direction', 'minus'), ('duty_permille', 79),
+                               ('duty_permille', 120), ('max_session_ms', 1799),
+                               ('max_session_ms', 1801),
+                               ('approval_code', profile.H6_APPROVAL_CODE),
+                               ('one_shot_profile', profile.H6_PROFILE)]:
+                original = getattr(args, key)
+                setattr(args, key, value)
+                with self.subTest(key=key, value=value), \
+                        self.assertRaises(console.CalibrationConsoleError):
+                    console.validate_execution_inputs(args)
+                setattr(args, key, original)
+            Path(args.firmware_bin).write_bytes(profile.H6_MANIFEST)
+            args.expected_sha256 = console.sha256_file(Path(args.firmware_bin))
+            with self.assertRaises(console.CalibrationConsoleError):
+                console.validate_execution_inputs(args)
+
     def test_missing_or_changed_approval_does_not_consume(self):
         with tempfile.TemporaryDirectory() as tmp:
             args=self.arguments(Path(tmp)); path=Path(args.run_approval)
@@ -64,9 +150,12 @@ class SlowdriveConsoleTests(unittest.TestCase):
             with self.assertRaises(ValueError): profile.consume(args)
             self.assertFalse(Path(args.run_approval+'.consumed').exists())
 
-    def run_fake(self, fault=None, version=1, legacy_profile=False):
+    def run_fake(self, fault=None, version=1, legacy_profile=False, h6=False,
+                 r2=False):
         with tempfile.TemporaryDirectory() as tmp:
-            args=self.arguments(Path(tmp))
+            args=(self.h6_r2_arguments(Path(tmp)) if r2 else
+                  (self.h6_arguments(Path(tmp), 'MD', 'minus', 120)
+                   if h6 else self.arguments(Path(tmp))))
             if legacy_profile: args.one_shot_profile='standard-50'
             link=legacy.FakeLink(fault); link.other_channel=0
             original=legacy.telemetry
@@ -76,7 +165,7 @@ class SlowdriveConsoleTests(unittest.TestCase):
                 return console.encode_packet(console.Packet(packet.message_type, packet.session_id,
                                                             packet.sequence,bytes(payload)))
             def key(timeout):
-                link.now+=max(0.001,timeout)
+                link.now+=min(0.001,max(0.0,timeout))
                 has_output=any(p.message_type==console.MSG_M2A_CALIBRATION_HOLD for _,p in link.writes)
                 if has_output and fault=='cancel': return 'q'
                 if has_output and fault=='eof': raise console.CalibrationConsoleError('terminal input closed')
@@ -96,8 +185,11 @@ class SlowdriveConsoleTests(unittest.TestCase):
             self.assertLessEqual(len(arms),1)
             outputs=[(t,p) for t,p in link.writes if p.message_type==console.MSG_M2A_CALIBRATION_HOLD]
             for t,p in outputs:
-                self.assertEqual(struct.unpack('<BbH',p.payload),(1,1,50))
-                self.assertLessEqual(t-link.armed_at,.600)
+                expected = ((2, 1, 80) if r2 else
+                            ((3, -1, 120) if h6 else (1, 1, 50)))
+                self.assertEqual(struct.unpack('<BbH',p.payload), expected)
+                if not r2:
+                    self.assertLessEqual(t-link.armed_at,.600)
             return link,result,error,arms,outputs
 
     def test_single_arm_fixed_output_deadline_and_stop(self):
@@ -107,6 +199,36 @@ class SlowdriveConsoleTests(unittest.TestCase):
         self.assertTrue(result['stop_confirmed'])
         stop=next(t for t,p in link.writes if p.message_type==console.MSG_STOP and t>link.armed_at)
         self.assertLessEqual(stop-link.armed_at,.601)
+
+    def test_h6_single_arm_selected_output_deadline_and_stop(self):
+        link,result,error,arms,outputs=self.run_fake(version=11,h6=True)
+        self.assertIsNone(error); self.assertEqual(len(arms),1)
+        self.assertGreater(len(outputs),0); self.assertLessEqual(len(outputs),24)
+        self.assertTrue(result['stop_confirmed'])
+        self.assertEqual((result['channel'], result['direction'], result['duty_permille']),
+                         ('MD', 'minus', 120))
+
+    def test_h6_r2_deadline_is_anchored_to_first_nonzero_and_stops_once(self):
+        link,result,error,arms,outputs=self.run_fake(version=12,r2=True)
+        self.assertIsNone(error); self.assertEqual(len(arms),1)
+        self.assertGreater(len(outputs),60)
+        self.assertTrue(result['stop_confirmed'])
+        first=outputs[0][0]
+        stop=next(t for t,p in link.writes
+                  if p.message_type==console.MSG_STOP and t>link.armed_at)
+        self.assertLessEqual(stop-first,1.800001)
+        self.assertLessEqual(stop-link.armed_at,2.500001)
+        self.assertEqual(result['run_trace']['nonzero_deadline_monotonic'],
+                         result['run_trace']['first_nonzero_tx_monotonic']+1.8)
+
+    def test_h6_r2_faults_stop_close_and_never_rearm(self):
+        for fault in ['missing_runtime_ack', 'nack', 'crc', 'fault', 'session',
+                      'other_encoder', 'stall', 'cancel']:
+            with self.subTest(fault=fault):
+                _,_,error,arms,outputs=self.run_fake(fault,version=12,r2=True)
+                if fault!='cancel': self.assertIsNotNone(error)
+                self.assertLessEqual(len(arms),1)
+                if fault=='missing_runtime_ack': self.assertEqual(len(outputs),1)
 
     def test_both_versions_reject_cross_profile_before_arm(self):
         for version,old in [(0,False),(1,True),(2,False)]:

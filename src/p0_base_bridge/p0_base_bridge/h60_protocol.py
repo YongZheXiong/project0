@@ -39,6 +39,9 @@ STATUS_TARGET_REJECTED = 10
 
 CAPABILITY_M2A_CALIBRATION = 0x02
 M2A_MAX_DUTY_PERMILLE = 120
+W2_FOUR_WHEEL_PROFILE_CHANNEL = 0xF0
+W2_FOUR_WHEEL_DUTY_PERMILLE = 80
+W2_FOUR_WHEEL_FORWARD_SIGNS = (-1, 1, -1, 1)
 
 STATE_NAMES = {
     STATE_BOOT: "BOOT",
@@ -286,6 +289,32 @@ def encode_m2a_calibration_hold(
             f"M2-A duty must be 1..{M2A_MAX_DUTY_PERMILLE} permille"
         )
     return struct.pack("<BbH", channel_value, direction_value, duty_value)
+
+
+def w2_four_wheel_channel_directions(direction: int) -> Tuple[int, int, int, int]:
+    """Return MA..MD signs for the fixed W2 body direction."""
+
+    direction_value = int(direction)
+    if direction_value not in (-1, 1):
+        raise ValueError("W2 profile direction must be -1 or 1")
+    return tuple(
+        direction_value * sign for sign in W2_FOUR_WHEEL_FORWARD_SIGNS
+    )  # type: ignore[return-value]
+
+
+def encode_w2_four_wheel_profile(direction: int) -> bytes:
+    direction_value = int(direction)
+    w2_four_wheel_channel_directions(direction_value)
+    return struct.pack(
+        "<BbH",
+        W2_FOUR_WHEEL_PROFILE_CHANNEL,
+        direction_value,
+        W2_FOUR_WHEEL_DUTY_PERMILLE,
+    )
+
+
+def encode_w2_four_wheel_release() -> bytes:
+    return struct.pack("<BbH", W2_FOUR_WHEEL_PROFILE_CHANNEL, 0, 0)
 
 
 def differential_targets_mmps(

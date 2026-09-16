@@ -89,8 +89,7 @@ bool p0_motion_config_is_valid(const p0_motion_config_t *config)
     uint8_t i;
 
     if ((config == NULL) ||
-        (config->control_period_ms == 0) ||
-        (config->control_period_ms > UINT32_C(1000)) ||
+        (config->control_period_ms != P0_MOTION_CONTROL_PERIOD_MS) ||
         (config->maximum_target_mm_s == 0) ||
         (config->acceleration_mm_s2 == 0) ||
         (config->deceleration_mm_s2 == 0) ||

@@ -68,6 +68,18 @@ static void test_invalid_configuration_fails_closed(void)
     CHECK(controller.output_permille[0] == 0);
 }
 
+static void test_control_period_must_match_fixed_scheduler(void)
+{
+    p0_motion_config_t config = synthetic_config();
+
+    config.control_period_ms = P0_MOTION_CONTROL_PERIOD_MS - UINT32_C(1);
+    CHECK(!p0_motion_config_is_valid(&config));
+    config.control_period_ms = P0_MOTION_CONTROL_PERIOD_MS + UINT32_C(1);
+    CHECK(!p0_motion_config_is_valid(&config));
+    config.control_period_ms = P0_MOTION_CONTROL_PERIOD_MS;
+    CHECK(p0_motion_config_is_valid(&config));
+}
+
 static void test_speed_estimation_and_counter_wrap(void)
 {
     p0_motion_config_t config = synthetic_config();
@@ -270,6 +282,7 @@ static void test_deterministic_command_changes_never_reverse_directly(void)
 int main(void)
 {
     test_invalid_configuration_fails_closed();
+    test_control_period_must_match_fixed_scheduler();
     test_speed_estimation_and_counter_wrap();
     test_ramp_limit_and_anti_windup();
     test_reversal_requires_zero_hold();

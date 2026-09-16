@@ -85,10 +85,12 @@ typedef struct {
 
 #define RCC_CR REG32(UINT32_C(0x40023800))
 #define RCC_CFGR REG32(UINT32_C(0x40023808))
+#define RCC_APB1RSTR REG32(UINT32_C(0x40023820))
 #define RCC_APB2RSTR REG32(UINT32_C(0x40023824))
 #define RCC_AHB1ENR REG32(UINT32_C(0x40023830))
 #define RCC_APB1ENR REG32(UINT32_C(0x40023840))
 #define RCC_APB2ENR REG32(UINT32_C(0x40023844))
+#define RCC_CSR REG32(UINT32_C(0x40023874))
 
 #define GPIOA ((gpio_regs_t *)(uintptr_t)UINT32_C(0x40020000))
 #define GPIOB ((gpio_regs_t *)(uintptr_t)UINT32_C(0x40020400))
@@ -122,6 +124,10 @@ typedef struct {
 #define IWDG_SR_UPDATE_MASK UINT32_C(0x3)
 #define IWDG_UPDATE_TIMEOUT_CYCLES UINT32_C(1000000)
 
+#define RCC_CSR_RMVF (UINT32_C(1) << 24)
+#define RCC_CSR_IWDGRSTF (UINT32_C(1) << 29)
+#define P0_RESET_OBSERVER_MAGIC UINT32_C(0x50305253)
+
 #define RCC_AHB1_GPIOAEN (UINT32_C(1) << 0)
 #define RCC_AHB1_GPIOBEN (UINT32_C(1) << 1)
 #define RCC_AHB1_GPIOCEN (UINT32_C(1) << 2)
@@ -140,6 +146,7 @@ typedef struct {
 
 #define USART_SR_RXNE (UINT32_C(1) << 5)
 #define USART_SR_RX_ERROR_MASK UINT32_C(0xF) /* PE/FE/NE/ORE */
+#define USART_SR_TC (UINT32_C(1) << 6)
 #define USART_SR_TXE (UINT32_C(1) << 7)
 #define USART_CR1_RE (UINT32_C(1) << 2)
 #define USART_CR1_TE (UINT32_C(1) << 3)
@@ -147,6 +154,7 @@ typedef struct {
 #define USART_CR1_PEIE (UINT32_C(1) << 8)
 #define USART_CR1_UE (UINT32_C(1) << 13)
 #define USART_CR3_EIE UINT32_C(1)
+#define USART_TX_COMPLETE_TIMEOUT_CYCLES UINT32_C(1000000)
 
 #define ADC_SR_EOC (UINT32_C(1) << 1)
 #define ADC_CR2_ADON (UINT32_C(1) << 0)
@@ -193,6 +201,20 @@ bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
 {
     uint32_t primask = slow_irq_lock();
     bool ok = slow_permitted(s, last_heartbeat_ms);
+#if P0_H6_CHARACTERIZATION_BUILD != 0
+    if (ok && action == P0_SLOW_WAKE && s->phase == P0_SLOW_WAKING &&
+        slow_io_is_safe_gpio(s)) {
+        slow_io_prepare(s);
+        ok = slow_io_ready(s) && slow_permitted(s, last_heartbeat_ms);
+        if (ok) {
+            slow_io_wake(s);
+            s->wake_at_ms = g_millis;
+        }
+    } else if (ok && action == P0_SLOW_RUN && s->phase == P0_SLOW_ACTIVE &&
+               (uint32_t)(g_millis - s->wake_at_ms) >= P0_SLOW_WAKE_MS &&
+               slow_io_is_alternate(s)) {
+        slow_io_run(s);
+#else
     if (ok && action == P0_SLOW_WAKE && s->phase == P0_SLOW_WAKING &&
         (GPIOE->MODER & P0_SLOW_MB_MODES) == P0_SLOW_MB_OUTPUT &&
         !(GPIOE->ODR & P0_SLOW_MB_PINS)) {
@@ -206,6 +228,7 @@ bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
                (uint32_t)(g_millis - s->wake_at_ms) >= P0_SLOW_WAKE_MS &&
                (GPIOE->MODER & P0_SLOW_MB_MODES) == P0_SLOW_MB_AF) {
         slow_io_run();
+#endif
     } else {
         ok = false;
     }
@@ -215,6 +238,8 @@ bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
 }
 #endif
 static p0_hw_retained_fault_t g_retained_fault
+    __attribute__((section(".noinit")));
+static p0_hw_retained_fault_t g_reset_observer
     __attribute__((section(".noinit")));
 
 static void gpio_set_mode(gpio_regs_t *gpio, uint8_t pin, uint32_t mode)
@@ -655,17 +680,51 @@ void p0_hw_watchdog_feed(void)
     IWDG_KR = UINT32_C(0xAAAA);
 }
 
+void p0_hw_iwdg_diagnostic_stall(void)
+{
+    p0_hw_motor_force_safe(0);
+    __asm volatile("dsb" ::: "memory");
+    for (;;) {
+        __asm volatile("nop");
+    }
+}
+
+void p0_hw_exception_diagnostic_trigger(void)
+{
+    uint32_t timeout = USART_TX_COMPLETE_TIMEOUT_CYCLES;
+
+    p0_hw_motor_force_safe(0);
+    while (((USART3->SR & USART_SR_TC) == 0) && (timeout != 0)) {
+        --timeout;
+    }
+    P0_HW_ASSERT(timeout != 0);
+    __asm volatile("dsb\nudf #0" ::: "memory");
+    p0_hw_fault_trap(P0_HW_FAULT_HARD);
+}
+
 uint32_t p0_hw_take_retained_fault(void)
 {
     uint32_t code = P0_HW_FAULT_NONE;
+    uint32_t reset_flags = RCC_CSR;
+    bool reset_observer_valid =
+        (g_reset_observer.magic == P0_RESET_OBSERVER_MAGIC) &&
+        (g_reset_observer.inverted_code == ~g_reset_observer.code) &&
+        (g_reset_observer.code == P0_RESET_OBSERVER_MAGIC);
 
     if ((g_retained_fault.magic == P0_HW_FAULT_MAGIC) &&
         (g_retained_fault.inverted_code == ~g_retained_fault.code)) {
         code = g_retained_fault.code;
+    } else if (reset_observer_valid &&
+               ((reset_flags & RCC_CSR_IWDGRSTF) != 0)) {
+        code = P0_HW_FAULT_IWDG_RESET;
     }
     g_retained_fault.magic = 0;
     g_retained_fault.code = 0;
     g_retained_fault.inverted_code = UINT32_C(0xFFFFFFFF);
+    g_reset_observer.magic = P0_RESET_OBSERVER_MAGIC;
+    g_reset_observer.code = P0_RESET_OBSERVER_MAGIC;
+    g_reset_observer.inverted_code = ~P0_RESET_OBSERVER_MAGIC;
+    RCC_CSR |= RCC_CSR_RMVF;
     return code;
 }
 

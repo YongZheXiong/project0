@@ -25,6 +25,9 @@ from p0_base_bridge.h60_protocol import (
     differential_targets_mmps,
     encode_m2a_calibration_hold,
     encode_packet,
+    encode_w2_four_wheel_profile,
+    encode_w2_four_wheel_release,
+    w2_four_wheel_channel_directions,
 )
 
 
@@ -159,6 +162,23 @@ class CodecTest(unittest.TestCase):
         for args in ((4, 1, 50), (0, 2, 50), (0, 1, 121), (0, 0, 1)):
             with self.assertRaises(ValueError):
                 encode_m2a_calibration_hold(*args)
+
+    def test_w2_four_wheel_profile_is_reserved_and_fixed(self):
+        self.assertEqual(
+            encode_w2_four_wheel_profile(1),
+            b"\xf0\x01\x50\x00",
+        )
+        self.assertEqual(
+            encode_w2_four_wheel_profile(-1),
+            b"\xf0\xff\x50\x00",
+        )
+        self.assertEqual(encode_w2_four_wheel_release(), b"\xf0\x00\x00\x00")
+        self.assertEqual(w2_four_wheel_channel_directions(1), (-1, 1, -1, 1))
+        self.assertEqual(w2_four_wheel_channel_directions(-1), (1, -1, 1, -1))
+        with self.assertRaises(ValueError):
+            encode_w2_four_wheel_profile(0)
+        with self.assertRaises(ValueError):
+            encode_m2a_calibration_hold(0xF0, 1, 80)
 
     def test_differential_mapping_uses_integer_mm_per_second(self):
         targets = differential_targets_mmps(

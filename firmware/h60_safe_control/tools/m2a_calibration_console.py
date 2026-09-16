@@ -96,15 +96,15 @@ def validate_execution_inputs(args: argparse.Namespace) -> tuple[int, int]:
     profile = getattr(args, 'one_shot_profile', 'standard-50')
     if mode not in ('hold-space', 'one-shot'):
         raise CalibrationConsoleError("unknown trigger mode")
-    if profile not in ('standard-50', MB80_PROFILE, slowdrive.PROFILE):
+    if profile not in ('standard-50', MB80_PROFILE, *slowdrive.PROFILES):
         raise CalibrationConsoleError("unknown one-shot profile")
     required_code = ONE_SHOT_APPROVAL_CODE if mode == 'one-shot' else APPROVAL_CODE
-    if profile == slowdrive.PROFILE:
+    if profile in slowdrive.PROFILES:
         try:
             slowdrive.validate(args)
         except (ValueError, OSError, AttributeError, TypeError) as exc:
             raise CalibrationConsoleError(f'slowdrive refused: {exc}') from exc
-        required_code = slowdrive.APPROVAL_CODE
+        required_code = slowdrive.approval_code(profile)
     if profile == MB80_PROFILE:
         # 本次明确授权仅覆盖左前MB正向80‰；不放宽原50‰模式。
         if (mode != 'one-shot' or args.channel != 'MB'
@@ -128,9 +128,12 @@ def validate_execution_inputs(args: argparse.Namespace) -> tuple[int, int]:
         raise CalibrationConsoleError(
             f"firmware SHA-256 mismatch: expected {expected}, got {actual}"
         )
-    if args.max_session_ms <= 0 or args.max_session_ms > MAX_HOST_SESSION_MS:
+    max_host_session_ms = (slowdrive.H6_R2_NONZERO_WINDOW_MS
+                           if profile == slowdrive.H6_R2_PROFILE
+                           else MAX_HOST_SESSION_MS)
+    if args.max_session_ms <= 0 or args.max_session_ms > max_host_session_ms:
         raise CalibrationConsoleError(
-            f"max session must be 1..{MAX_HOST_SESSION_MS} ms"
+            f"max session must be 1..{max_host_session_ms} ms"
         )
     if args.duty_permille <= 0 or args.duty_permille > 120:
         raise CalibrationConsoleError("duty must be 1..120 permille")
@@ -159,8 +162,18 @@ def _prepare_one_shot(args, trace):
         tty.setcbreak(sys.stdin.fileno())
         print(f"单次 {args.channel}/{args.direction}/{args.duty_permille}‰，"
               f"ARM起算最长{args.max_session_ms}ms。", flush=True)
-        print("现场：仅指定电机接入、四轮稳固架空、线束远离轮区；其余设备隔离，"
-              "上电轮静止且无异常，主开关随手可达。", flush=True)
+        if getattr(args, 'field_topology', '') == 'single_mb_lf_only':
+            print("现场：只把左前轮电机接到MB；MA/MC/MD保持空且分别绝缘。"
+                  "四轮稳固架空、线束远离轮区，Orin/Mid360隔离，"
+                  "上电轮静止且无异常，主开关随手可达。", flush=True)
+        elif getattr(args, 'one_shot_profile', '') in (
+                slowdrive.H6_PROFILE, slowdrive.H6_R2_PROFILE):
+            print("现场：四路最终电机线均已接入，本段仅选定通道可输出；"
+                  "四轮稳固架空、线束远离轮区，Orin/Mid360隔离，"
+                  "上电轮静止且无异常，主开关随手可达。", flush=True)
+        else:
+            print("现场：仅指定电机接入、四轮稳固架空、线束远离轮区；其余设备隔离，"
+                  "上电轮静止且无异常，主开关随手可达。", flush=True)
         print("确认本批现场条件就绪后按一次回车；随后倒计时3秒，可移开视线观察车轮。"
               "无需空格；其他键取消，运行中q/Ctrl-C停止。", flush=True)
         trace['phase'] = 'waiting_for_enter'
@@ -328,14 +341,14 @@ class EvidencePort:
 
 def run_console(args):
     validate_execution_inputs(args)
-    if getattr(args, 'one_shot_profile', '') == slowdrive.PROFILE:
+    if getattr(args, 'one_shot_profile', '') in slowdrive.PROFILES:
         slowdrive.consume(args)
     output = Path(tempfile.mkdtemp(prefix='m2a_run_', dir=args.evidence_root))
     metadata = dict(started_utc=datetime.now(timezone.utc).isoformat(),
                     arguments=vars(args), firmware_sha256=sha256_file(Path(args.firmware_bin)),
                     console_sha256=sha256_file(Path(__file__)), digital_run_pass=False,
                     serial_opened=False, run_trace={})
-    if getattr(args, 'one_shot_profile', '') == slowdrive.PROFILE:
+    if getattr(args, 'one_shot_profile', '') in slowdrive.PROFILES:
         metadata['profile_sha256'] = sha256_file(Path(slowdrive.__file__))
         metadata['approval_sha256'] = sha256_file(Path(args.run_approval).expanduser())
     print(f"Evidence: {output}", flush=True)
@@ -380,11 +393,16 @@ def run_console(args):
                 signal.signal(signum, previous)
             if operator_tty is not None:
                 termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, operator_tty)
-        if trace['trigger_mode'] == 'one-shot':
+        if trace['trigger_mode'] == 'one-shot' and not getattr(
+                args, 'batch_managed_closeout', False):
             print("本次已结束，不会自动重试。确认轮停止后拔COM主机端、关主开关、拔电池；"
                   "灯灭后检查支撑、板卡、支架和轮毂。", flush=True)
             print("一次回复：胎顶朝车头/车尾/未动；停止正常/异常；支撑紧固无变化/异常；已断电。",
                   flush=True)
+        elif trace['trigger_mode'] == 'one-shot':
+            print("本段已结束且串口已关闭；先确认物理停转、支撑/线束无变化且无异常，"
+                  "再由批处理器决定是否进入下一段。", flush=True)
+    return output
 
 
 def _send(serial_port: PosixSerialPort, packet: Packet) -> None:
@@ -435,8 +453,10 @@ def _run_console(args, serial_port, trace=None):
     trace.update(trigger_mode='one-shot' if one_shot else 'hold-space',
                  nonzero_commands=0, stop_confirmed=False)
     channel, direction = CHANNELS[args.channel], DIRECTIONS[args.direction]
-    firmware_version = (slowdrive.VERSION if getattr(args, 'one_shot_profile', '')
-                        == slowdrive.PROFILE else (0, 2, 0))
+    selected_profile = getattr(args, 'one_shot_profile', '')
+    nonzero_anchored = selected_profile == slowdrive.H6_R2_PROFILE
+    firmware_version = (slowdrive.version(selected_profile)
+                        if selected_profile in slowdrive.PROFILES else (0, 2, 0))
     parser = CheckedParser(firmware_version)
     session_id = secrets.randbits(32) or 1
     sequence = 1
@@ -490,7 +510,10 @@ def _run_console(args, serial_port, trace=None):
         parser.allowed_states = {STATE_DISARMED, STATE_ARMED}
         arm = Packet(MSG_ARM, session_id, sequence)
         armed_at = time.monotonic()
-        session_deadline = armed_at + args.max_session_ms / 1000.0
+        absolute_deadline = (armed_at + slowdrive.H6_R2_ABSOLUTE_SESSION_MS / 1000.0
+                             if nonzero_anchored else None)
+        session_deadline = (None if nonzero_anchored else
+                            armed_at + args.max_session_ms / 1000.0)
         trace['arm_attempt_monotonic'] = armed_at
         trace['phase'] = 'arming'
         _send(serial_port, arm)
@@ -523,9 +546,12 @@ def _run_console(args, serial_port, trace=None):
         trace['phase'] = 'running'
         trace['exit_reason'] = 'session_limit'
 
-        while (time.monotonic() - armed_at) * 1000.0 < args.max_session_ms:
+        while True:
             now = time.monotonic()
-            key = _operator_key(min(0.005, max(0.0, armed_at + args.max_session_ms / 1000 - now)))
+            active_deadline = session_deadline or absolute_deadline
+            if now >= active_deadline:
+                break
+            key = _operator_key(min(0.005, max(0.0, active_deadline - now)))
             now = time.monotonic()
             if key is not None:
                 if one_shot:
@@ -542,26 +568,31 @@ def _run_console(args, serial_port, trace=None):
                 break
             if last_nonzero_tx is not None and now - last_nonzero_tx > OUTPUT_REFRESH_GAP_SEC:
                 raise CalibrationConsoleError("output refresh delayed; refusing to resume")
-            if (time.monotonic() - armed_at) * 1000 >= args.max_session_ms:
+            active_deadline = session_deadline or absolute_deadline
+            if time.monotonic() >= active_deadline:
                 break
 
             # 先处理已到达的坏帧/异常状态，不能在检查前再续租输出。
             parser.receive(serial_port, 0.0)
             _check_runtime_packets(parser, session_id, outstanding)
 
-            if now >= next_heartbeat and _runtime_send_window_open(session_deadline):
+            if now >= next_heartbeat and _runtime_send_window_open(active_deadline):
                 outstanding[sequence] = (MSG_HEARTBEAT, time.monotonic())
                 _send(serial_port, Packet(MSG_HEARTBEAT, session_id, sequence))
                 sequence += 1
                 next_heartbeat = now + HEARTBEAT_PERIOD_SEC
 
-            if now >= next_command and _runtime_send_window_open(session_deadline):
-                if (time.monotonic() - armed_at) * 1000 >= args.max_session_ms:
+            if now >= next_command and _runtime_send_window_open(active_deadline):
+                if time.monotonic() >= active_deadline:
                     break
                 if last_nonzero_tx is not None and time.monotonic() - last_nonzero_tx > OUTPUT_REFRESH_GAP_SEC:
                     raise CalibrationConsoleError("output refresh delayed; refusing to resume")
                 active = one_shot or time.monotonic() <= key_deadline
                 had_output = had_output or active
+                if (active and nonzero_anchored and last_nonzero_tx is None and
+                        time.monotonic() + args.max_session_ms / 1000.0 > absolute_deadline):
+                    raise CalibrationConsoleError(
+                        "insufficient absolute session budget for the H6-R2 envelope")
                 payload = encode_m2a_calibration_hold(
                     channel,
                     direction if active else 0,
@@ -575,6 +606,10 @@ def _run_console(args, serial_port, trace=None):
                 if active:
                     last_nonzero_tx = time.monotonic()
                     trace.setdefault('first_nonzero_tx_monotonic', last_nonzero_tx)
+                    if nonzero_anchored and session_deadline is None:
+                        session_deadline = (last_nonzero_tx +
+                                            args.max_session_ms / 1000.0)
+                        trace['nonzero_deadline_monotonic'] = session_deadline
                     trace['last_nonzero_tx_monotonic'] = last_nonzero_tx
                     trace['nonzero_commands'] += 1
                 sequence += 1
@@ -632,12 +667,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-session-ms", type=int, default=600)
     parser.add_argument("--trigger-mode", choices=('hold-space', 'one-shot'), default='hold-space',
                         help="one-shot requires its own approval code and an operator ENTER/countdown")
-    parser.add_argument("--one-shot-profile", choices=('standard-50', MB80_PROFILE, slowdrive.PROFILE),
+    parser.add_argument("--one-shot-profile",
+                        choices=('standard-50', MB80_PROFILE, *slowdrive.PROFILES),
                         default='standard-50', help="explicit per-run reviewed profile")
     parser.add_argument("--firmware-bin", required=True)
     parser.add_argument("--expected-sha256", required=True)
     parser.add_argument("--approval-code", required=True)
     parser.add_argument("--run-approval", help="slowdrive only: exact per-run approval JSON")
+    parser.add_argument("--field-topology", choices=('single_mb_lf_only',),
+                        help="optional reviewed field wiring prompt")
     parser.add_argument("--evidence-root", required=True, help="existing evidence directory")
     return parser
 

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -91,6 +93,91 @@ class BootloaderProtocolTests(unittest.TestCase):
         with self.assertRaises(boot.BootloaderError):
             client.sync()
 
+    def test_read_memory_timeout_identifies_address_ack_phase(self):
+        trace = []
+        transport = FakeTransport(bytes((boot.ACK,)))
+        client = boot.STM32Bootloader(transport, trace=trace.append)
+
+        with self.assertRaises(boot.ReadMemoryError) as raised:
+            client.read_memory(boot.FLASH_BASE + 0x35700, boot.READ_CHUNK)
+
+        self.assertEqual(raised.exception.address, boot.FLASH_BASE + 0x35700)
+        self.assertEqual(raised.exception.phase, "address_ack")
+        self.assertIn("READ MEMORY address ACK", raised.exception.cause)
+        self.assertEqual(len(trace), 1)
+        self.assertEqual(trace[0]["status"], "error")
+        self.assertEqual(trace[0]["failed_phase"], "address_ack")
+        self.assertEqual(
+            [item["phase"] for item in trace[0]["phases"]],
+            ["command_write", "command_ack", "address_write", "address_ack"],
+        )
+
+    def test_read_memory_identifies_every_response_phase(self):
+        cases = (
+            (b"", "command_ack"),
+            (bytes((boot.ACK,)), "address_ack"),
+            (bytes((boot.ACK, boot.ACK)), "length_ack"),
+            (bytes((boot.ACK, boot.ACK, boot.ACK, 0x5A)), "data"),
+        )
+        for replies, expected_phase in cases:
+            with self.subTest(expected_phase=expected_phase):
+                trace = []
+                client = boot.STM32Bootloader(
+                    FakeTransport(replies), trace=trace.append
+                )
+                with self.assertRaises(boot.ReadMemoryError) as raised:
+                    client.read_memory(boot.FLASH_BASE, boot.READ_CHUNK)
+                self.assertEqual(raised.exception.phase, expected_phase)
+                self.assertEqual(trace[0]["failed_phase"], expected_phase)
+
+    def test_full_read_failure_does_not_replay_transaction(self):
+        transport = FakeTransport(b"")
+        client = boot.STM32Bootloader(transport)
+
+        with self.assertRaises(boot.FlashReadError) as raised:
+            boot.read_factory_flash(client)
+
+        self.assertEqual(raised.exception.completed_bytes, 0)
+        self.assertEqual(raised.exception.transaction_error.phase, "command_ack")
+        self.assertEqual(
+            transport.writes,
+            [bytes((boot.CMD_READ_MEMORY, boot.CMD_READ_MEMORY ^ 0xFF))],
+        )
+
+    def test_full_read_failure_retains_completed_prefix(self):
+        first_block = bytes(range(256))
+        replies = bytes((boot.ACK, boot.ACK, boot.ACK)) + first_block
+        client = boot.STM32Bootloader(FakeTransport(replies))
+
+        with self.assertRaises(boot.FlashReadError) as raised:
+            boot.read_factory_flash(client)
+
+        self.assertEqual(raised.exception.completed_bytes, boot.READ_CHUNK)
+        self.assertEqual(raised.exception.partial_image, first_block)
+        self.assertEqual(
+            raised.exception.transaction_error.address,
+            boot.FLASH_BASE + boot.READ_CHUNK,
+        )
+        self.assertEqual(raised.exception.transaction_error.phase, "command_ack")
+
+    def test_jsonl_trace_flushes_failed_transaction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "read.transactions.jsonl"
+            trace = boot.JsonlTrace(path)
+            client = boot.STM32Bootloader(FakeTransport(b""), trace=trace)
+            with self.assertRaises(boot.ReadMemoryError):
+                client.read_memory(boot.FLASH_BASE, boot.READ_CHUNK)
+            trace.close()
+
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+            self.assertEqual(len(records), 1)
+            self.assertEqual(
+                records[0]["schema"],
+                "project0.stm32_rom_uart_read_transaction.v1",
+            )
+            self.assertEqual(records[0]["address"], "0x08000000")
+            self.assertEqual(records[0]["failed_phase"], "command_ack")
+
 
 class BackupValidationTests(unittest.TestCase):
     @staticmethod
@@ -139,6 +226,62 @@ class BackupValidationTests(unittest.TestCase):
             with self.assertRaises(boot.BootloaderError):
                 boot.save_new_file(path, b"second")
             self.assertEqual(path.read_bytes(), b"first")
+
+    def test_hardware_runner_saves_partial_prefix_without_full_image(self):
+        class FakeAdapter:
+            def restore_run_lines(self, _profile):
+                return None
+
+            def close(self):
+                return None
+
+        class FailingClient:
+            def __init__(self):
+                self.calls = 0
+
+            def get_id(self):
+                return boot.EXPECTED_CHIP_ID, b"\x04\x13"
+
+            def get(self):
+                return 0x31, (boot.CMD_READ_MEMORY,)
+
+            def read_memory(self, address, size):
+                self.calls += 1
+                if self.calls == 1:
+                    return bytes(range(size))
+                raise boot.ReadMemoryError(
+                    address=address,
+                    size=size,
+                    phase="command_ack",
+                    cause="synthetic timeout",
+                    phases=[
+                        {"phase": "command_write", "status": "pass"},
+                        {"phase": "command_ack", "status": "error"},
+                    ],
+                )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "factory.bin"
+            args = boot.build_parser().parse_args(
+                ["backup", "--port", "synthetic", "--output", str(output)]
+            )
+            profile = boot.AUTO_ISP_PROFILES[0]
+            client = FailingClient()
+            with mock.patch.object(
+                boot,
+                "connect_read_only",
+                return_value=(FakeAdapter(), client, profile),
+            ):
+                with self.assertRaises(boot.BootloaderError) as raised:
+                    boot._run_hardware(args)
+
+            partial = root / "factory.bin.partial"
+            trace = root / "factory.bin.transactions.jsonl"
+            self.assertFalse(output.exists())
+            self.assertEqual(partial.read_bytes(), bytes(range(256)))
+            self.assertTrue(trace.exists())
+            self.assertIn("no automatic transaction replay", str(raised.exception))
 
 
 if __name__ == "__main__":

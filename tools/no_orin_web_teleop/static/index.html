@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Project0 无 Orin 本机安全控制台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="title-block">
+          <p class="eyebrow" id="mode-eyebrow">W1.5 / 本机假串口</p>
+          <h1>无 Orin 本机安全控制台</h1>
+          <p class="subtitle" id="mode-subtitle">假 H60 离线链路 · 真实串口 / 使能 / 运动保持锁定</p>
+        </div>
+        <div class="status" aria-label="当前状态">
+          <span id="state" class="pill is-neutral">已失能</span>
+          <span id="fault" class="pill is-good">无故障</span>
+        </div>
+      </header>
+
+      <section class="safety-strip" aria-label="安全摘要">
+        <div>
+          <span>当前边界</span>
+          <strong id="safety-status">仅允许准备 W2 离线包</strong>
+        </div>
+        <div>
+          <span>链路模式</span>
+          <strong id="safety-mode">仅本机假串口</strong>
+        </div>
+        <div>
+          <span>下一关口</span>
+          <strong id="next-gate">W2 / 已锁定</strong>
+        </div>
+      </section>
+
+      <section id="field-guide" class="field-guide" aria-label="本次现场操作" aria-live="polite" hidden>
+        <h2>本次只做一个方向</h2>
+        <p id="field-step">等待现场包开放方向。</p>
+        <p id="field-feedback">先申请，再短按；自动停车后回终端确认。</p>
+        <ol>
+          <li>点一次“申请使能”，看到“待按方向”后在 5 秒内按本阶段允许的方向。</li>
+          <li>网页约 0.3 秒自动停车；松开，观察四轮方向和是否全部停下。</li>
+          <li>无异常才回终端输入本阶段通过词；任何故障先关主开关、断开电池，再输入 ANOMALY。</li>
+        </ol>
+      </section>
+
+      <section class="operator-board" aria-label="操作面板">
+        <div class="primary-actions">
+          <button id="stop" class="stop">
+            <span>停止</span>
+            <small>撤销当前意图</small>
+          </button>
+          <button id="disarm">
+            <span>解除使能</span>
+            <small>回到失能</small>
+          </button>
+          <button id="arm">
+            <span>申请使能</span>
+            <small>仅假链路</small>
+          </button>
+        </div>
+        <div class="drive-actions">
+          <button id="forward" class="drive forward">
+            <span>按住前进</span>
+            <small>短租约</small>
+          </button>
+          <button id="reverse" class="drive reverse">
+            <span>按住后退</span>
+            <small>先停再换向</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel-row" aria-label="假串口遥测">
+        <div class="panel">
+          <label for="scenario">假串口场景</label>
+          <select id="scenario">
+            <option value="normal">正常</option>
+            <option value="fault">故障锁止</option>
+            <option value="timeout">响应超时</option>
+            <option value="identity_drift">身份漂移</option>
+            <option value="reboot">模拟重启</option>
+            <option value="crc_error">CRC 错误</option>
+            <option value="length_error">长度错误</option>
+            <option value="sequence_error">序号错误</option>
+          </select>
+        </div>
+        <div class="panel meters">
+          <div>
+            <span>命令租约</span>
+            <strong id="lease">0 ms</strong>
+          </div>
+          <div>
+            <span>当前方向</span>
+            <strong id="direction">无</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <section class="safety-panel" aria-label="安全边界">
+          <div class="log-head">
+            <h2>安全边界</h2>
+            <span id="live-state" class="pill is-warn">本轮未确认</span>
+          </div>
+          <div class="safety-grid">
+            <div>
+              <span>本机后端</span>
+              <strong id="backend-description">仅假 H60</strong>
+            </div>
+            <div>
+              <span>历史 W1</span>
+              <strong>受限通过，不代表当前现场</strong>
+            </div>
+            <div>
+              <span>实体动作</span>
+              <strong id="device-action-description">等待独立现场包</strong>
+            </div>
+          </div>
+          <ol id="safety-checks" class="compact-log"></ol>
+          <div class="safety-lists">
+            <p><strong>当前允许</strong> <span id="allowed-now">复核离线假串口</span></p>
+            <p><strong>保持锁定</strong> <span id="prohibited">真实设备动作</span></p>
+          </div>
+        </section>
+
+        <section class="log-panel" aria-label="事件记录">
+          <div class="log-head">
+            <h2>事件记录</h2>
+            <span id="serial" class="pill is-neutral">假 H60-W0 / 正常</span>
+          </div>
+          <ol id="events"></ol>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
