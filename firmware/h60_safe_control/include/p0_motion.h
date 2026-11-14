@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "p0_build_config.h"
 
 #define P0_MOTION_CHANNEL_COUNT UINT8_C(4)
 #define P0_MOTION_CONTROL_PERIOD_MS UINT32_C(10)
@@ -39,6 +40,13 @@ typedef struct {
     int8_t active_direction[4];
     int8_t pending_direction[4];
     uint32_t zero_hold_elapsed_ms[4];
+#if P0_USB_INTEGRATED_BUILD != 0
+    /* 100ms滚动速度估计；每10ms原始增量上限仍独立核验。 */
+    int32_t speed_delta_history[4][10];
+    int32_t speed_delta_sum[4];
+    uint8_t speed_history_index;
+    uint8_t speed_history_count;
+#endif
 } p0_motion_controller_t;
 
 bool p0_motion_config_is_valid(const p0_motion_config_t *config);

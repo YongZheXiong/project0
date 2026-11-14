@@ -1,5 +1,7 @@
 # hardware_architecture.md
 
+> **2026-11-14 更新**。当前上位机为 Jetson Orin Nano，经 USB-COM 与 H60 通信。已发布的 ROS 2 模式、仲裁与架空验证见[连接基线](p2_h60_rebuild_baseline.md)和[源码说明](../../src/README.md)。下方旧主机、旧接口和阶段记录保留其历史适用范围。
+
 > **当前实现覆盖（2026-08-20）**：当前硬件基线为 H60 V3.7 + 4×MC520P56_12V + 65 mm 轮和两层整车 CAD。本文第 2–15 节保留 P1 与上一实车平台的详细展开；其中出现的独立 STM32、双 WSDC2412D、JGB37-520、ACS712、Keyes、急停/继电器、CTRL-001 和三层底盘均为历史，不能作为当前采购、接线、CAD 或验收输入。当前实现以 `p2_h60_rebuild_baseline.md`、`hardware/bom.md` 和第 16 节为准。
 
 ## 1. 文档定位

@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "p0_m2a_slowdrive.h"
+#include "p0_usb_motion.h"
+#include "p0_usb_motion_trace.h"
 
 #define P0_HW_FAULT_MAGIC UINT32_C(0x50304654)
 
@@ -33,13 +35,28 @@ void p0_hw_motor_apply_pwm(void *unused, const int16_t output_permille[4]);
 uint32_t p0_hw_motor_stop_generation(void);
 bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
     uint32_t last_heartbeat_ms);
+bool p0_hw_usb_motion_begin(p0_usb_motion_guard_t *guard);
+bool p0_hw_usb_motion_commit(const int16_t output_permille[4]);
+#if P0_USB_MOTION_TRACE_BUILD != 0
+/* 只读快照；不是PWM波形测量，停止代次变化通过flags显式标记。 */
+void p0_hw_usb_motion_trace_snapshot(uint8_t channel, p0_trace_io_t *sample);
+#endif
 
 uint32_t p0_hw_millis(void);
+#if P0_USB_LINK_RECOVERY_BUILD != 0
+/* 只读本芯片UID及本次清标志前的RCC_CSR副本，不触发复位。 */
+void p0_hw_usb_boot_identity(uint32_t uid[3], uint32_t *reset_flags);
+#endif
 void p0_hw_main_alive(void);
 bool p0_hw_supervisor_tripped(void);
 
 bool p0_hw_uart_read_byte(uint8_t *byte);
 bool p0_hw_uart_take_rx_fault(void);
+/* Only used by the default-off USB quiet candidate. Quiet latches until boot. */
+bool p0_hw_usb_tx_start(uint32_t heartbeat_ms);
+void p0_hw_usb_tx_lease(uint32_t heartbeat_ms);
+void p0_hw_usb_tx_quiet(void);
+bool p0_hw_usb_tx_active(void);
 void p0_hw_uart_write(const uint8_t *data, size_t length);
 
 void p0_hw_encoder_read(int32_t count[4]);

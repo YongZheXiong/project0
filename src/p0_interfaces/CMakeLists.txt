@@ -9,9 +9,11 @@ find_package(std_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ChassisCmd.msg"
   "msg/ChassisStatus.msg"
+  "msg/SystemStatus.msg"
   "srv/ClearMotionLock.srv"
   "srv/ResetEmergency.srv"
   "srv/StopMotion.srv"
+  "srv/SetSystemMode.srv"
   "srv/TriggerEmergencyStop.srv"
   DEPENDENCIES builtin_interfaces std_msgs
 )

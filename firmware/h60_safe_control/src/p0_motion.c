@@ -68,6 +68,7 @@ static int32_t encoder_delta(uint8_t bits, int32_t now, int32_t before)
     return (int32_t)delta;
 }
 
+#if P0_USB_INTEGRATED_BUILD == 0
 static int32_t estimate_speed(
     const p0_motion_config_t *config,
     uint8_t channel,
@@ -83,6 +84,8 @@ static int32_t estimate_speed(
 
     return clamp_i64_to_i32(numerator / denominator);
 }
+
+#endif
 
 bool p0_motion_config_is_valid(const p0_motion_config_t *config)
 {
@@ -131,6 +134,13 @@ void p0_motion_reset(p0_motion_controller_t *controller)
     uint8_t i;
 
     controller->encoder_ready = false;
+#if P0_USB_INTEGRATED_BUILD != 0
+    controller->speed_history_index = controller->speed_history_count = 0;
+    for (i = 0; i < P0_MOTION_CHANNEL_COUNT; ++i) {
+        controller->speed_delta_sum[i] = 0;
+        for (unsigned k = 0; k < 10; ++k) controller->speed_delta_history[i][k] = 0;
+    }
+#endif
     for (i = 0; i < P0_MOTION_CHANNEL_COUNT; ++i) {
         controller->previous_encoder_count[i] = 0;
         controller->requested_target_mm_s[i] = 0;
@@ -361,10 +371,29 @@ bool p0_motion_step(
         }
     }
 
+#if P0_USB_INTEGRATED_BUILD != 0
+    if (controller->speed_history_count < 10) ++controller->speed_history_count;
+    for (i = 0; i < P0_MOTION_CHANNEL_COUNT; ++i) {
+        unsigned slot = controller->speed_history_index;
+        controller->speed_delta_sum[i] -= controller->speed_delta_history[i][slot];
+        controller->speed_delta_history[i][slot] = delta[i];
+        controller->speed_delta_sum[i] += delta[i];
+    }
+    controller->speed_history_index = (uint8_t)((controller->speed_history_index + 1) % 10);
+#endif
     for (i = 0; i < P0_MOTION_CHANNEL_COUNT; ++i) {
         controller->previous_encoder_count[i] = encoder_count[i];
-        controller->measured_speed_mm_s[i] =
-            estimate_speed(&controller->config, i, delta[i]);
+#if P0_USB_INTEGRATED_BUILD != 0
+        /* 在64位除法前保留分子精度，不能先取整单窗速度再平均。 */
+        int64_t numerator = (int64_t)controller->speed_delta_sum[i] *
+            controller->config.wheel_circumference_mm[i] * INT64_C(1000) *
+            controller->config.encoder_polarity[i];
+        int64_t denominator = (int64_t)controller->config.encoder_counts_per_revolution[i] *
+            controller->config.control_period_ms * controller->speed_history_count;
+        controller->measured_speed_mm_s[i] = clamp_i64_to_i32(numerator / denominator);
+#else
+        controller->measured_speed_mm_s[i] = estimate_speed(&controller->config, i, delta[i]);
+#endif
         update_channel(controller, i);
         output_permille[i] = controller->output_permille[i];
     }

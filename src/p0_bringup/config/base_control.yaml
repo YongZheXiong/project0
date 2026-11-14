@@ -17,7 +17,7 @@ p0_base_bridge:
     heartbeat_period_sec: 0.10
     linear_deadband_mps: 0.01
     angular_deadband_radps: 0.02
-    # Both switches remain false until H4/H5 and H6 acceptance close.
+    # 生产运动开关默认关闭，轮端参数需经真机验收。
     motion_commands_enabled: false
     wheel_mapping_confirmed: false
     # Current CAD nominal only; H6 must replace/freeze the measured value.
@@ -33,6 +33,14 @@ p0_safety_manager:
     autonomy_timeout_sec: 0.25
     manual_release_hold_sec: 0.50
     autonomy_enabled: false
+    publish_period_sec: 0.05
+    require_system_mode: true
+    system_mode_timeout_sec: 0.25
+
+p0_system_manager:
+  ros__parameters:
+    base_timeout_sec: 0.35
+    manual_timeout_sec: 0.25
     publish_period_sec: 0.05
 
 p0_manual_control:

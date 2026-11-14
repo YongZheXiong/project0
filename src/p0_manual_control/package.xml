@@ -6,7 +6,6 @@
   <maintainer email="maintainer@example.com">Project0 maintainer</maintainer>
   <license>Proprietary</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>p0_interfaces</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>

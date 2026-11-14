@@ -1,0 +1,11 @@
+std_msgs/Header header
+string mode
+bool motion_allowed
+bool fault_latched
+bool base_comm_ok
+bool base_motion_ready
+bool manual_input_fresh
+string reason
+# 每次进程启动更新epoch；generation只在模式转换时增加。
+string epoch
+uint64 generation

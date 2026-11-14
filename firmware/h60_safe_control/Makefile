@@ -8,9 +8,12 @@ ARM_BUILD := $(BUILD)/arm
 COMMON_SRC := src/p0_crc32.c src/p0_protocol.c src/p0_control.c \
 	src/p0_motion.c src/p0_motion_scheduler.c src/p0_m2a_calibration.c \
 	src/p0_uart_rx.c src/p0_m2a_slowdrive.c \
-	src/p0_iwdg_diagnostic.c
+	src/p0_iwdg_diagnostic.c src/p0_usb_quiet.c src/p0_usb_motion.c
 ARM_SRC := $(COMMON_SRC) src/p0_runtime.c src/p0_manifest.c \
 	src/p0_hw_stm32f407.c src/main.c
+ifneq ($(filter -DP0_USB_MANUAL_BUILD=1,$(ARM_DEFINES)),)
+ARM_SRC += src/p0_usb_manual.c
+endif
 ARM_ASM := src/startup_stm32f407.S
 
 HOST_CC ?= cc
@@ -18,7 +21,7 @@ HOST_CFLAGS := -std=c11 -O2 -g -Wall -Wextra -Werror -pedantic -Iinclude
 
 ARM_GCC ?= $(shell command -v arm-none-eabi-gcc 2>/dev/null)
 ifeq ($(strip $(ARM_GCC)),)
-ARM_GCC := /Applications/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.macosaarch64_1.0.0.202602081740/tools/bin/arm-none-eabi-gcc
+ARM_GCC := arm-none-eabi-gcc
 endif
 ARM_BIN_DIR := $(dir $(ARM_GCC))
 ARM_OBJCOPY := $(ARM_BIN_DIR)arm-none-eabi-objcopy
@@ -37,13 +40,27 @@ ARM_DEFINES ?= -DP0_TARGET_STM32F407=1 \
 	-DP0_H6_EXTENDED_WINDOW_BUILD=0 \
 	-DP0_W2_FOUR_WHEEL_PROFILE_BUILD=0 \
 	-DP0_IWDG_DIAGNOSTIC_BUILD=0
+ifneq ($(filter -DP0_USB_MOTION_TRACE_BUILD=1,$(ARM_DEFINES)),)
+ARM_SRC += src/p0_usb_motion_trace.c
+endif
+ifneq ($(filter -DP0_USB_LINK_RECOVERY_BUILD=1,$(ARM_DEFINES)),)
+ARM_SRC += src/p0_usb_link_recovery.c
+endif
+ifneq ($(filter -DP0_USB_RX_DIAG_BUILD=1,$(ARM_DEFINES)),)
+ARM_SRC += src/p0_usb_diag.c
+endif
 ARM_CFLAGS := $(ARM_CPU) -std=c11 -Os -g0 -Wall -Wextra -Werror \
 	-ffreestanding -fno-builtin -fdata-sections -ffunction-sections \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables -Iinclude \
 	$(ARM_DEFINES)
+ARM_LINKER ?= linker/stm32f407vetx.ld
 ARM_LDFLAGS := $(ARM_CPU) -nostdlib -Wl,--gc-sections -Wl,-z,noexecstack \
 	-Wl,-Map=$(ARM_BUILD)/$(PROJECT).map \
-	-Tlinker/stm32f407vetx.ld
+	-T$(ARM_LINKER)
+
+ifneq ($(filter -DP0_USB_RX_DIAG_BUILD=1,$(ARM_DEFINES)),)
+ARM_LDFLAGS += -Wl,--require-defined=__p0_diag_layout
+endif
 
 HOST_TEST := $(HOST_BUILD)/test_safe_control
 MOTION_TEST := $(HOST_BUILD)/test_motion_control
@@ -378,7 +395,7 @@ $(ARM_BUILD)/%.o: src/%.c $(wildcard include/*.h) | $(ARM_BUILD)
 $(ARM_BUILD)/%.o: src/%.S | $(ARM_BUILD)
 	$(ARM_GCC) $(ARM_CPU) -g0 -c $< -o $@
 
-$(ARM_ELF): $(ARM_C_OBJ) $(ARM_S_OBJ) linker/stm32f407vetx.ld
+$(ARM_ELF): $(ARM_C_OBJ) $(ARM_S_OBJ) $(ARM_LINKER)
 	$(ARM_GCC) $(ARM_LDFLAGS) $(ARM_C_OBJ) $(ARM_S_OBJ) -lgcc -o $@
 
 $(ARM_BIN): $(ARM_ELF)
@@ -415,3 +432,105 @@ $(HOST_BUILD) $(ARM_BUILD):
 
 clean:
 	rm -rf $(BUILD)
+
+# Isolated default-off candidate, no flash/port entry point.
+.PHONY: usb-quiet-test usb-quiet-firmware
+usb-quiet-test: | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) -DP0_USB_QUIET_BUILD=1 \
+		tests/test_usb_quiet_main.c $(COMMON_SRC) -o $(HOST_BUILD)/test_usb_quiet_main
+	$(HOST_BUILD)/test_usb_quiet_main
+	python3 -m unittest -v tests/test_usb_quiet_build.py
+
+usb-quiet-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-quiet ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_QUIET_BUILD=1" firmware
+
+# J5独立无电机候选，保留USB静默协议/保护；无刷写或设备入口。
+.PHONY: j5-uart-test j5-uart-firmware
+j5-uart-test: | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) -DP0_USB_QUIET_BUILD=1 -DP0_UART_J5_BUILD=1 \
+		tests/test_usb_quiet_main.c $(COMMON_SRC) -o $(HOST_BUILD)/test_j5_uart_main
+	$(HOST_BUILD)/test_j5_uart_main
+	python3 -m unittest -v tests/test_j5_uart_build.py
+
+j5-uart-firmware:
+	$(MAKE) BUILD=$(BUILD)/j5-uart ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_QUIET_BUILD=1 -DP0_UART_J5_BUILD=1" firmware
+
+# Default-off experimental USB motion candidate; no device/flash target.
+.PHONY: usb-motion-firmware usb-motion-test
+usb-motion-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-motion ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1" firmware
+
+usb-motion-test: | $(HOST_BUILD)
+	$(HOST_CC) $(HOST_CFLAGS) -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 \
+		tests/test_usb_motion_main.c $(COMMON_SRC) -o $(HOST_BUILD)/test_usb_motion_main
+	$(HOST_BUILD)/test_usb_motion_main
+	python3 -m unittest -v tests/test_usb_motion_build.py
+
+# 独立RAM诊断候选，仅离线构建/测试；无设备或Flash目标。
+.PHONY: usb-motion-trace-firmware usb-motion-trace-test
+usb-motion-trace-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-motion-trace ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_MOTION_TRACE_BUILD=1" firmware
+
+usb-motion-trace-test:
+	python3 -m unittest -v tests/test_usb_motion_trace_build.py
+
+.PHONY: usb-startup-candidate-firmware usb-startup-candidate-test
+usb-startup-candidate-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-startup-candidate ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_MOTION_TRACE_BUILD=1 -DP0_USB_STARTUP_CANDIDATE_BUILD=1" firmware
+
+usb-startup-candidate-test:
+	python3 -m unittest -v tests/test_usb_startup_candidate.py
+
+.PHONY: usb-four-candidate-firmware usb-four-candidate-test
+usb-four-candidate-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-four-candidate ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_FOUR_WHEEL_CANDIDATE_BUILD=1" firmware
+
+usb-four-candidate-test:
+	python3 -m unittest -v tests/test_usb_four_candidate.py
+
+# 只构建离线候选，不包含下载、串口或设备命令。
+.PHONY: usb-link-recovery-firmware usb-link-recovery-test
+usb-link-recovery-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-link-recovery ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_MOTION_TRACE_BUILD=1 -DP0_USB_STARTUP_CANDIDATE_BUILD=1 -DP0_USB_LINK_RECOVERY_BUILD=1" firmware
+
+usb-link-recovery-test:
+	python3 -m unittest -v tests/test_usb_link_recovery_build.py
+
+# 默认关闭，仅离线生成独立输入滤波候选；不包含设备操作。
+.PHONY: usb-encoder-filter-firmware usb-encoder-filter-test
+usb-encoder-filter-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-encoder-filter ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_MOTION_TRACE_BUILD=1 -DP0_USB_STARTUP_CANDIDATE_BUILD=1 -DP0_USB_ENCODER_FILTER_BUILD=1" firmware
+
+usb-encoder-filter-test:
+	python3 -m unittest -v tests/test_usb_encoder_filter_build.py
+
+# 独立默认关闭；不包含下载、串口或执行现场包。
+.PHONY: usb-rx-diag-firmware usb-rx-diag-test
+usb-rx-diag-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-rx-diag ARM_LINKER=linker/stm32f407vetx_diag.ld ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_MOTION_TRACE_BUILD=1 -DP0_USB_STARTUP_CANDIDATE_BUILD=1 -DP0_USB_ENCODER_FILTER_BUILD=1 -DP0_USB_RX_DIAG_BUILD=1" firmware
+
+usb-rx-diag-test:
+	python3 -m unittest -v tests/test_usb_diag_build.py
+
+# 第1步数字衔接；无下载、端口或现场执行目标，保留独立SRAM布局。
+.PHONY: usb-control-candidate-firmware usb-control-candidate-test
+usb-control-candidate-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-control-candidate ARM_LINKER=linker/stm32f407vetx_diag.ld ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_FOUR_WHEEL_CANDIDATE_BUILD=1 -DP0_USB_ENCODER_FILTER_BUILD=1 -DP0_USB_RX_DIAG_BUILD=1 -DP0_USB_CONTROL_DIAG_BUILD=1" firmware
+
+usb-control-candidate-test:
+	python3 -m unittest -v tests/test_usb_control_candidate.py
+
+# 同界限单轮TRACE调速候选；不含下载或现场动作。
+.PHONY: usb-velocity-candidate-firmware usb-velocity-candidate-test
+usb-velocity-candidate-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-velocity-candidate ARM_LINKER=linker/stm32f407vetx_diag.ld ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_MOTION_TRACE_BUILD=1 -DP0_USB_STARTUP_CANDIDATE_BUILD=1 -DP0_USB_ENCODER_FILTER_BUILD=1 -DP0_USB_RX_DIAG_BUILD=1 -DP0_USB_VELOCITY_DIAG_BUILD=1" firmware
+
+usb-velocity-candidate-test:
+	python3 -m unittest -v tests/test_usb_velocity_candidate.py
+
+.PHONY: usb-integrated-candidate-firmware usb-integrated-candidate-test
+usb-integrated-candidate-firmware:
+	$(MAKE) BUILD=$(BUILD)/usb-integrated-candidate ARM_LINKER=linker/stm32f407vetx_diag.ld ARM_DEFINES="-DP0_TARGET_STM32F407=1 -DP0_USB_MOTION_BUILD=1 -DP0_MOTION_OUTPUT_COMPILED=1 -DP0_USB_FOUR_WHEEL_CANDIDATE_BUILD=1 -DP0_USB_ENCODER_FILTER_BUILD=1 -DP0_USB_RX_DIAG_BUILD=1 -DP0_USB_CONTROL_DIAG_BUILD=1 -DP0_USB_INTEGRATED_BUILD=1" firmware
+
+usb-integrated-candidate-test:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=../../tools/nano_bench:tests python3 -m unittest -v tests.test_usb_integrated_candidate

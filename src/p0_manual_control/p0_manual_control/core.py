@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import struct
 from typing import Optional, Sequence
 
@@ -107,3 +108,52 @@ def map_joy(
         True,
         "deadman_active",
     )
+
+
+class ManualRecoveryGuard:
+    """健康输入失联后锁住旧意图，直到健康消息明确回中并释放保持键。"""
+
+    def __init__(self) -> None:
+        self._healthy_seen = False
+        self._neutral_required = False
+        self._last_input_at: Optional[float] = None
+
+    def require_neutral(self) -> None:
+        if self._healthy_seen:
+            self._neutral_required = True
+
+    @staticmethod
+    def _released_neutral(axes, buttons, mapping: JoyMapping) -> bool:
+        if not mapping.mapping_confirmed:
+            return False
+        indices = (mapping.linear_axis, mapping.angular_axis)
+        if any(index < 0 or index >= len(axes) for index in indices):
+            return False
+        button = mapping.deadman_button
+        if button < 0 or button >= len(buttons):
+            return False
+        try:
+            return int(buttons[button]) == 0 and all(
+                math.isfinite(float(axes[index]))
+                and abs(float(axes[index])) <= mapping.deadzone
+                for index in indices
+            )
+        except (TypeError, ValueError, OverflowError):
+            return False
+
+    def observe(self, axes, buttons, mapping: JoyMapping, now: float,
+                timeout_sec: float, link_alive: bool) -> ManualIntent:
+        # 回调先于超时定时器到达时，也不能绕过恢复门。
+        if self._last_input_at is not None and now - self._last_input_at > timeout_sec:
+            self.require_neutral()
+        self._last_input_at = now
+        if not link_alive:
+            self.require_neutral()
+            return ManualIntent(0.0, 0.0, False, "joy_link_down")
+        self._healthy_seen = True
+        if self._neutral_required:
+            if self._released_neutral(axes, buttons, mapping):
+                self._neutral_required = False
+                return ManualIntent(0.0, 0.0, False, "recovery_neutral_seen")
+            return ManualIntent(0.0, 0.0, False, "recovery_neutral_required")
+        return map_joy(axes, buttons, mapping)

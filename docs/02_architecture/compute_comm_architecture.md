@@ -1,4 +1,6 @@
 # Compute and Communication Architecture
+
+> **2026-11-14 更新**。当前上位机为 Jetson Orin Nano，经 USB-COM 与 H60 通信。已发布的 ROS 2 模式、仲裁与架空验证见[连接基线](p2_h60_rebuild_baseline.md)和[源码说明](../../src/README.md)。下方旧主机、旧接口和阶段记录保留其历史适用范围。
 ---
 
 > **当前实现覆盖（DEC-047 / DEC-046）**：Orin NX 是当前主计算机，底层执行控制器为 OpenCTR H60 V3.7。当前主链路、单侧掉电反供电和运动状态机见 `p2_h60_rebuild_baseline.md`。文中的 STM32、急停/继电器和旧“安全链”名称均属于上一平台历史实现。

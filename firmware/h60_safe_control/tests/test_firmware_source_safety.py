@@ -76,7 +76,7 @@ class WatchdogSourceSafetyTests(unittest.TestCase):
         uart_end = hardware.index("void p0_hw_encoder_read", uart_start)
         uart_write = hardware[uart_start:uart_end]
         self.assertIn("USART_SR_TXE", uart_write)
-        self.assertNotIn("USART_SR_TC", uart_write)
+        self.assertIn("#if P0_USB_GUARDED_BUILD != 0\n    (void)usb_tx_wait(USART_SR_TC);", uart_write)
 
 
 class MotionSourceSafetyTests(unittest.TestCase):

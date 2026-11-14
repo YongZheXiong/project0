@@ -1,5 +1,7 @@
 # 1. 文档定位
 
+> **2026-11-14 更新**。当前上位机为 Jetson Orin Nano，经 USB-COM 与 H60 通信。已发布的 ROS 2 模式、仲裁与架空验证见[连接基线](p2_h60_rebuild_baseline.md)和[源码说明](../../src/README.md)。下方旧主机、旧接口和阶段记录保留其历史适用范围。
+
 > **当前实现覆盖（2026-08-20）**：ROS2 包职责与上层接口骨架继续有效，但底盘桥接目标已从旧 STM32 文本协议迁移为 H60 版本化协议和显式 ARM 会话。当前无独立急停/继电器或急停 GPIO。现有源码中的 `ESTOP`、软件急停字段和 `p0_safety_manager` 行为属于旧平台迁移骨架，不得解释为 H60 新车已实现能力，也不得直接用于运动；现行停止/失能语义应迁移为 STOP、DISARM、故障锁止和新会话 ARM。固件要求见 `../../firmware/h60_motion_control_firmware_requirements_v0_2.md`。
 
 本文档属于项目0在 P1 阶段的系统架构设计输出物之一，放置在 docs/02_architecture/ 目录下，与 system_architecture.md、compute_comm_architecture.md、power_architecture.md、hardware_architecture.md 并列管理。

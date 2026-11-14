@@ -4,6 +4,8 @@
 #include "p0_motion.h"
 #include "p0_pwm_timing.h"
 #include "p0_uart_rx.h"
+#include "p0_usb_diag.h"
+#include "p0_uart_pinmap.h"
 
 #include <stdint.h>
 
@@ -160,15 +162,18 @@ typedef struct {
 #define ADC_CR2_ADON (UINT32_C(1) << 0)
 #define ADC_CR2_SWSTART (UINT32_C(1) << 30)
 
+#if P0_USB_GUARDED_BUILD != 0
+static volatile bool g_usb_tx_latched;
+static volatile uint32_t g_usb_heartbeat_ms;
+#endif
 static volatile uint32_t g_millis;
 static volatile uint32_t g_main_epoch;
 static volatile uint32_t g_supervisor_trip;
 static p0_uart_rx_t g_uart_rx;
 static bool g_motor_pwm_initialized;
 static int8_t g_motor_direction[4];
-#if P0_M2A_SLOWDRIVE_BUILD != 0
+#if P0_M2A_SLOWDRIVE_BUILD != 0 || P0_USB_MOTION_BUILD != 0
 static volatile uint32_t g_motor_stop_generation;
-#include "p0_m2a_slowdrive_sequence.h"
 
 static uint32_t slow_irq_lock(void)
 {
@@ -187,6 +192,8 @@ uint32_t p0_hw_motor_stop_generation(void)
     return g_motor_stop_generation;
 }
 
+#if P0_M2A_SLOWDRIVE_BUILD != 0
+#include "p0_m2a_slowdrive_sequence.h"
 static bool slow_permitted(const p0_m2a_slowdrive_t *s, uint32_t heartbeat)
 {
     uint32_t now = g_millis;
@@ -237,10 +244,28 @@ bool p0_hw_slow_commit(p0_m2a_slowdrive_t *s, p0_slow_action_t action,
     return ok;
 }
 #endif
+#endif
+#if P0_USB_MOTION_BUILD != 0
+#include "p0_usb_motion_io.h"
+static p0_usb_motion_guard_t * volatile g_um_guard;
+static volatile bool g_um_waking;
+static volatile uint32_t g_um_wake_ms;
+static volatile int8_t g_um_direction[4];
+#endif
 static p0_hw_retained_fault_t g_retained_fault
     __attribute__((section(".noinit")));
 static p0_hw_retained_fault_t g_reset_observer
     __attribute__((section(".noinit")));
+#if P0_USB_LINK_RECOVERY_BUILD != 0
+static uint32_t g_boot_reset_flags;
+void p0_hw_usb_boot_identity(uint32_t uid[3], uint32_t *reset_flags)
+{
+    /* STM32F407 CMSIS UID_BASE；只读96位UID，不作安全认证。 */
+    for (uint32_t i = 0; i < 3; ++i)
+        uid[i] = REG32(UINT32_C(0x1FFF7A10) + i * UINT32_C(4));
+    *reset_flags = g_boot_reset_flags;
+}
+#endif
 
 static void gpio_set_mode(gpio_regs_t *gpio, uint8_t pin, uint32_t mode)
 {
@@ -299,7 +324,7 @@ void p0_hw_motor_force_safe(void *unused)
     uint32_t i;
 
     (void)unused;
-#if P0_M2A_SLOWDRIVE_BUILD != 0
+#if P0_M2A_SLOWDRIVE_BUILD != 0 || P0_USB_MOTION_BUILD != 0
     uint32_t primask = slow_irq_lock();
     ++g_motor_stop_generation;
 #endif
@@ -308,6 +333,10 @@ void p0_hw_motor_force_safe(void *unused)
 
 #if P0_M2A_SLOWDRIVE_BUILD != 0
     slow_io_off();
+#elif P0_USB_MOTION_BUILD != 0
+    um_io_off();
+    g_um_waking = false;
+    for (i = 0; i < 4; ++i) g_um_direction[i] = 0;
 #endif
 
     TIM9->CCR1 = 0;
@@ -332,12 +361,12 @@ void p0_hw_motor_force_safe(void *unused)
     g_motor_direction[2] = 0;
     g_motor_direction[3] = 0;
     g_motor_pwm_initialized = false;
-#if P0_M2A_SLOWDRIVE_BUILD != 0
+#if P0_M2A_SLOWDRIVE_BUILD != 0 || P0_USB_MOTION_BUILD != 0
     slow_irq_unlock(primask);
 #endif
 }
 
-#if P0_MOTION_OUTPUT_COMPILED != 0 && P0_M2A_SLOWDRIVE_BUILD == 0
+#if P0_MOTION_OUTPUT_COMPILED != 0 && P0_M2A_SLOWDRIVE_BUILD == 0 && P0_USB_MOTION_BUILD == 0
 
 #define P0_TIM_CCMR_PWM_PRELOAD UINT32_C(0x6868)
 #define P0_TIM_CR1_ARPE_CEN UINT32_C(0x81)
@@ -465,8 +494,132 @@ void p0_hw_motor_apply_pwm(void *unused, const int16_t output_permille[4])
 
 #endif
 
+#if P0_USB_GUARDED_BUILD != 0
+static void usb_tx_off(void)
+{
+    USART3->CR1 &= ~USART_CR1_TE;
+    gpio_set_mode(P0_UART_GPIO, P0_UART_TX_PIN, 0); /* 输入，无推挽空闲高 */
+    P0_UART_GPIO->PUPDR &= ~((UINT32_C(3) << (P0_UART_TX_PIN * 2)) |
+                             (UINT32_C(3) << (P0_UART_RX_PIN * 2)));
+#if P0_UART_J5_BUILD != 0
+    /* 早期/静默/故障路径均撤销旧USB映射与上下拉。 */
+    gpio_set_mode(GPIOD, 8, 0);
+    gpio_set_mode(GPIOD, 9, 0);
+    GPIOD->PUPDR &= ~((UINT32_C(3) << 16) | (UINT32_C(3) << 18));
+    gpio_set_af(GPIOD, 8, 0);
+    gpio_set_af(GPIOD, 9, 0);
+#endif
+}
+void p0_hw_usb_tx_quiet(void)
+{
+#if P0_USB_RX_DIAG_BUILD != 0
+    bool first = !g_usb_tx_latched;
+#endif
+    g_usb_tx_latched = true;
+    usb_tx_off();
+#if P0_USB_MOTION_BUILD != 0
+    p0_hw_motor_force_safe(0);
+#endif
+#if P0_USB_RX_DIAG_BUILD != 0
+    if (first) P0_DIAG(P0_DIAG_TX_QUIET, g_supervisor_trip, g_uart_rx.fault);
+#endif
+}
+bool p0_hw_usb_tx_active(void)
+{
+    return !g_usb_tx_latched && (USART3->CR1 & USART_CR1_TE) != 0 &&
+        (uint32_t)(g_millis - g_usb_heartbeat_ms) < UINT32_C(250);
+}
+void p0_hw_usb_tx_lease(uint32_t heartbeat_ms)
+{
+    if (p0_hw_usb_tx_active()) g_usb_heartbeat_ms = heartbeat_ms;
+}
+bool p0_hw_usb_tx_start(uint32_t heartbeat_ms)
+{
+    uint32_t primask;
+    bool ok;
+    __asm volatile("mrs %0, primask\ncpsid i" : "=r"(primask) :: "memory");
+    ok = !g_usb_tx_latched && !g_supervisor_trip && !g_uart_rx.fault;
+    if (ok) {
+        g_usb_heartbeat_ms = heartbeat_ms;
+        USART3->CR1 |= USART_CR1_TE;
+        gpio_config_af(P0_UART_GPIO, P0_UART_TX_PIN, 7, false);
+    }
+    __asm volatile("dsb\nmsr primask, %0" :: "r"(primask) : "memory");
+    return ok && p0_hw_usb_tx_active();
+}
+#if P0_USB_MOTION_BUILD != 0
+bool p0_hw_usb_motion_begin(p0_usb_motion_guard_t *guard)
+{
+    uint32_t saved = slow_irq_lock();
+    bool ok = p0_hw_usb_tx_active() &&
+        p0_usb_motion_fresh(guard, g_millis, g_motor_stop_generation);
+    if (ok) g_um_guard = guard;
+    slow_irq_unlock(saved);
+    return ok;
+}
+bool p0_hw_usb_motion_commit(const int16_t output[4])
+{
+    uint32_t saved = slow_irq_lock();
+    bool nonzero = false;
+    bool ok = p0_hw_usb_tx_active() && !g_supervisor_trip &&
+        !g_uart_rx.fault && !(USART3->SR & USART_SR_RX_ERROR_MASK) &&
+        p0_usb_motion_fresh(g_um_guard, g_millis, g_motor_stop_generation);
+    for (uint8_t i = 0; i < 4; ++i) {
+        int32_t magnitude = output[i] < 0 ? -(int32_t)output[i] : output[i];
+        int8_t direction = output[i] > 0 ? 1 : (output[i] < 0 ? -1 : 0);
+        if (magnitude > P0_UM_OUTPUT_LIMIT ||
+            (direction && g_um_direction[i] && direction != g_um_direction[i]))
+            ok = false;
+        if (magnitude) nonzero = true;
+    }
+    if (ok && nonzero && !g_um_waking) {
+        ok = um_io_is_safe_gpio(0);
+        if (ok) {
+            um_io_prepare(0);
+            ok = um_io_ready(0);
+        }
+        if (ok) {
+            um_io_wake(0);
+            g_um_waking = true;
+            g_um_wake_ms = g_millis;
+        }
+    } else if (ok && g_um_waking &&
+               (uint32_t)(g_millis - g_um_wake_ms) >= P0_UM_WAKE_MS) {
+        ok = um_io_is_alternate(0);
+        if (ok) {
+            um_io_run(output);
+            for (uint8_t i = 0; i < 4; ++i)
+                g_um_direction[i] = output[i] > 0 ? 1 : (output[i] < 0 ? -1 : 0);
+        }
+    }
+    if (!ok) p0_hw_motor_force_safe(0);
+    slow_irq_unlock(saved);
+    return ok;
+}
+#endif
+static bool usb_tx_wait(uint32_t mask)
+{
+    uint32_t budget = USART_TX_COMPLETE_TIMEOUT_CYCLES;
+    while (p0_hw_usb_tx_active() && budget != 0) {
+        if ((USART3->SR & mask) != 0) return true;
+        --budget;
+    }
+    p0_hw_usb_tx_quiet();
+    return false;
+}
+#endif
+
 void p0_hw_early_safe_init(void)
 {
+#if P0_USB_GUARDED_BUILD != 0
+    RCC_AHB1ENR |= P0_UART_GPIO_CLOCKS;
+    RCC_APB1ENR |= RCC_APB1_USART3EN;
+    (void)RCC_APB1ENR;
+#if P0_UART_J5_BUILD != 0
+    gpio_set_mode(P0_UART_GPIO, P0_UART_RX_PIN, 0);
+#endif
+    usb_tx_off();
+#endif
     p0_hw_motor_force_safe(0);
 }
 
@@ -482,12 +635,18 @@ static void clock_use_hsi_16mhz(void)
 
 static void uart3_init(void)
 {
-    RCC_AHB1ENR |= RCC_AHB1_GPIODEN;
+    RCC_AHB1ENR |= P0_UART_GPIO_CLOCKS;
     RCC_APB1ENR |= RCC_APB1_USART3EN;
     (void)RCC_APB1ENR;
 
+#if P0_USB_GUARDED_BUILD != 0
+    usb_tx_off();
+    gpio_config_af(P0_UART_GPIO, P0_UART_RX_PIN, 7, false);
+    g_usb_tx_latched = false;
+#else
     gpio_config_af(GPIOD, 8, 7, true);
     gpio_config_af(GPIOD, 9, 7, true);
+#endif
 
     USART3->CR1 = 0;
     p0_uart_rx_init(&g_uart_rx);
@@ -498,21 +657,43 @@ static void uart3_init(void)
     NVIC_USART3_PRIORITY = UINT8_C(0x40);
     NVIC_ICPR1 = UINT32_C(1) << 7;
     NVIC_ISER1 = UINT32_C(1) << 7;
+#if P0_USB_GUARDED_BUILD != 0
+    USART3->CR1 = USART_CR1_RE | USART_CR1_UE |
+                  USART_CR1_RXNEIE | USART_CR1_PEIE;
+#else
     USART3->CR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE |
                   USART_CR1_RXNEIE | USART_CR1_PEIE;
+#endif
 }
 
 static void encoder_timer_init(tim_regs_t *timer, uint32_t period)
 {
+#if P0_USB_ENCODER_FILTER_BUILD != 0
+    /* 只核滤波时基，不改总线时钟；异常走原故障撤输出路径。
+       SW/SWS=HSI、HPRE=/1、PPRE1=/1；CKD在下方明确保持0。 */
+    P0_HW_ASSERT((RCC_CFGR & UINT32_C(0x1CFF)) == 0);
+#endif
     timer->CR1 = 0;
     timer->PSC = 0;
     timer->ARR = period;
+#if P0_USB_ENCODER_FILTER_BUILD != 0
+    /* RM0090: ICxF=0110，fSAMPLING=fDTS/4，连续6样本。
+       A/B对称；CCxS=01、ICxPSC=0，原双沿x4/极性保持。 */
+    timer->CCMR1 = UINT32_C(0x6161);
+#else
     timer->CCMR1 = UINT32_C(0x0101);
+#endif
     timer->CCER = 0;
     timer->SMCR = UINT32_C(3);
     timer->CNT = 0;
     timer->EGR = UINT32_C(1);
     timer->CR1 = UINT32_C(1);
+#if P0_USB_ENCODER_FILTER_BUILD != 0
+    P0_HW_ASSERT(timer->CCMR1 == UINT32_C(0x6161) &&
+                 timer->CCER == 0 && timer->SMCR == UINT32_C(3) &&
+                 timer->PSC == 0 && timer->ARR == period &&
+                 (timer->CR1 & UINT32_C(0x301)) == UINT32_C(1));
+#endif
 }
 
 static void encoders_init(void)
@@ -563,14 +744,30 @@ static void systick_init(void)
     SYSTICK->CTRL = UINT32_C(7);
 }
 
+#if P0_USB_RX_DIAG_BUILD != 0
+void p0_hw_diag_event(uint32_t event, uint32_t a, uint32_t b)
+{
+    uint32_t ipsr;
+    __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
+    unsigned lane = ipsr == 0 ? P0_DIAG_MAIN :
+        (ipsr == 55 ? P0_DIAG_UART : (ipsr == 15 ? P0_DIAG_TICK : P0_DIAG_FAULT));
+    p0_diag_emit(lane, g_millis, event, a, b);
+}
+#endif
 void p0_hw_init(void)
 {
     p0_hw_early_safe_init();
+#if P0_USB_RX_DIAG_BUILD != 0
+    uint32_t uid[3];
+    for (unsigned i = 0; i < 3; ++i) uid[i] = REG32(UINT32_C(0x1FFF7A10) + i*4);
+    p0_diag_boot(RCC_CSR, uid);
+#endif
     clock_use_hsi_16mhz();
     uart3_init();
     encoders_init();
     vin_adc_init();
     systick_init();
+    P0_DIAG(P0_DIAG_HW_READY, USART3->BRR, USART3->CR1);
 }
 
 uint32_t p0_hw_millis(void)
@@ -613,18 +810,42 @@ void USART3_IRQHandler(void)
         uint8_t byte = (uint8_t)USART3->DR;
         p0_uart_rx_push_isr(&g_uart_rx, byte,
             (status & USART_SR_RX_ERROR_MASK) != 0);
+        P0_DIAG(P0_DIAG_RX_BYTE, status, (uint32_t)byte |
+            ((uint32_t)g_uart_rx.fault << 8));
     }
 }
 
 void p0_hw_uart_write(const uint8_t *data, size_t length)
 {
     size_t i;
+#if P0_USB_RX_DIAG_BUILD != 0
+    uint32_t kind = length >= 14 ? (uint32_t)data[3] << 8 : 0;
+    uint32_t session = length >= 14 ? p0_read_u32_le(data+6) : 0;
+    uint32_t seq = length >= 14 ? p0_read_u32_le(data+10) : 0;
+    P0_DIAG(P0_DIAG_TX_BEGIN | kind, session, seq);
+#endif
 
     for (i = 0; i < length; ++i) {
+#if P0_USB_GUARDED_BUILD != 0
+        if (!usb_tx_wait(USART_SR_TXE)) {
+            P0_DIAG(P0_DIAG_TX_ABORT, (uint32_t)i, (uint32_t)length);
+            return;
+        }
+#else
         while ((USART3->SR & USART_SR_TXE) == 0) {
         }
+#endif
         USART3->DR = data[i];
     }
+#if P0_USB_RX_DIAG_BUILD == 0
+#if P0_USB_GUARDED_BUILD != 0
+    (void)usb_tx_wait(USART_SR_TC);
+#endif
+#else
+    if (usb_tx_wait(USART_SR_TC))
+        P0_DIAG(P0_DIAG_TX_COMPLETE | kind, session, seq);
+    else P0_DIAG(P0_DIAG_TX_ABORT, (uint32_t)length, (uint32_t)length);
+#endif
 }
 
 void p0_hw_encoder_read(int32_t count[4])
@@ -634,6 +855,42 @@ void p0_hw_encoder_read(int32_t count[4])
     count[2] = (int32_t)TIM5->CNT;
     count[3] = (int32_t)(uint16_t)TIM4->CNT;
 }
+
+#if P0_USB_MOTION_TRACE_BUILD != 0
+void p0_hw_usb_motion_trace_snapshot(uint8_t channel, p0_trace_io_t *sample)
+{
+    static const uint8_t pin1[4] = {9, 13, 5, 14};
+    static const uint8_t pin2[4] = {11, 14, 6, 15};
+    uint32_t before = g_motor_stop_generation;
+    uint32_t first, second, mode, enable, clock;
+    tim_regs_t *timer;
+    gpio_regs_t *gpio;
+    sample->flags = 0;
+    sample->ccr1 = sample->ccr2 = 0;
+    sample->generation = before;
+    if (channel >= 4) return;
+    timer = channel < 2 ? TIM1 : (channel == 2 ? TIM9 : TIM12);
+    gpio = channel == 3 ? GPIOB : GPIOE;
+    first = channel == 1 ? timer->CCR3 : timer->CCR1;
+    second = channel == 1 ? timer->CCR4 : timer->CCR2;
+    mode = gpio->MODER;
+    enable = (timer->CCER >> (channel == 1 ? 8 : 0)) & UINT32_C(0x11);
+    clock = channel < 2 ? (RCC_APB2ENR & RCC_APB2_TIM1EN) :
+        (channel == 2 ? (RCC_APB2ENR & RCC_APB2_TIM9EN) :
+                        (RCC_APB1ENR & RCC_APB1_TIM12EN));
+    sample->ccr1 = (uint16_t)first;
+    sample->ccr2 = (uint16_t)second;
+    if (((mode >> (2 * pin1[channel])) & 3) == 2 &&
+        ((mode >> (2 * pin2[channel])) & 3) == 2) sample->flags |= P0_TRACE_IO_AF;
+    if (clock) sample->flags |= P0_TRACE_IO_CLOCK;
+    if (enable == UINT32_C(0x11)) sample->flags |= P0_TRACE_IO_CCER;
+    if (channel >= 2 || (timer->BDTR & UINT32_C(0x8000)))
+        sample->flags |= P0_TRACE_IO_MOE_OR_NA;
+    if (first > 3200 || second > 3200) sample->flags |= P0_TRACE_IO_RANGE;
+    sample->generation = g_motor_stop_generation;
+    if (before == sample->generation) sample->flags |= P0_TRACE_IO_COHERENT;
+}
+#endif
 
 bool p0_hw_vin_read(uint16_t *raw, uint16_t *nominal_mv)
 {
@@ -706,6 +963,9 @@ uint32_t p0_hw_take_retained_fault(void)
 {
     uint32_t code = P0_HW_FAULT_NONE;
     uint32_t reset_flags = RCC_CSR;
+#if P0_USB_LINK_RECOVERY_BUILD != 0
+    g_boot_reset_flags = reset_flags;
+#endif
     bool reset_observer_valid =
         (g_reset_observer.magic == P0_RESET_OBSERVER_MAGIC) &&
         (g_reset_observer.inverted_code == ~g_reset_observer.code) &&
@@ -731,11 +991,15 @@ uint32_t p0_hw_take_retained_fault(void)
 void p0_hw_fault_trap(uint32_t code)
 {
     __asm volatile("cpsid i" ::: "memory");
+#if P0_USB_GUARDED_BUILD != 0
+    p0_hw_usb_tx_quiet();
+#endif
     p0_hw_motor_force_safe(0);
     g_retained_fault.code = code;
     g_retained_fault.inverted_code = ~code;
     g_retained_fault.magic = P0_HW_FAULT_MAGIC;
     __asm volatile("dsb" ::: "memory");
+    P0_DIAG(P0_DIAG_TRAP, code, 0);
     SCB_AIRCR = UINT32_C(0x05FA0004);
     __asm volatile("dsb\nisb" ::: "memory");
     for (;;) {
@@ -748,6 +1012,19 @@ void SysTick_Handler(void)
     static uint32_t stalled_ms;
 
     ++g_millis;
+#if P0_USB_MOTION_BUILD != 0
+    if (g_um_guard != 0 && g_um_guard->armed &&
+        !p0_usb_motion_fresh(g_um_guard, g_millis, g_motor_stop_generation))
+        p0_hw_motor_force_safe(0);
+#endif
+#if P0_USB_GUARDED_BUILD != 0
+    if ((USART3->CR1 & USART_CR1_TE) != 0 &&
+        (uint32_t)(g_millis - g_usb_heartbeat_ms) >= UINT32_C(250))
+    {
+        p0_hw_usb_tx_quiet();
+        P0_DIAG(P0_DIAG_TX_LEASE_EXPIRED, g_millis, g_usb_heartbeat_ms);
+    }
+#endif
     if (g_main_epoch == last_epoch) {
         if (stalled_ms < UINT32_C(100)) {
             ++stalled_ms;
@@ -755,6 +1032,9 @@ void SysTick_Handler(void)
         if (stalled_ms >= UINT32_C(100)) {
             p0_hw_motor_force_safe(0);
             g_supervisor_trip = UINT32_C(1);
+#if P0_USB_GUARDED_BUILD != 0
+            p0_hw_usb_tx_quiet();
+#endif
         }
     } else {
         last_epoch = g_main_epoch;

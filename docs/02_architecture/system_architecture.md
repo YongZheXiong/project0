@@ -1,5 +1,7 @@
 # system_architecture
 
+> **2026-11-14 更新**。当前上位机为 Jetson Orin Nano，经 USB-COM 与 H60 通信。已发布的 ROS 2 模式、仲裁与架空验证见[连接基线](p2_h60_rebuild_baseline.md)和[源码说明](../../src/README.md)。下方旧主机、旧接口和阶段记录保留其历史适用范围。
+
 ---
 
 > **当前实现覆盖（2026-08-20）**：系统级模块和 ROS2 抽象继续有效；执行层由 OpenCTR H60 + 4×MC520P56 实现。当前无独立急停/继电器或车载电流采样。本文后续若出现 STM32/JGB/旧三层结构或旧急停链路，应按 `p2_h60_rebuild_baseline.md` 的映射解释，不再视为当前硬件事实。

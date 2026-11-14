@@ -9,7 +9,7 @@ from p0_interfaces.msg import ChassisCmd
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
 
-from .core import JoyMapping, ManualIntent, map_joy
+from .core import JoyMapping, ManualIntent, ManualRecoveryGuard
 
 
 class ManualControlNode(Node):
@@ -31,6 +31,7 @@ class ManualControlNode(Node):
             float(self.get_parameter("publish_period_sec").value), self._tick
         )
         self._latest = ManualIntent(0.0, 0.0, False, "no_joy")
+        self._recovery = ManualRecoveryGuard()
         self._last_joy_time = 0.0
         self._sequence = 0
         self._last_reason = ""
@@ -47,13 +48,19 @@ class ManualControlNode(Node):
         )
 
     def _on_joy(self, message: Joy) -> None:
-        self._latest = map_joy(message.axes, message.buttons, self._mapping())
-        self._last_joy_time = time.monotonic()
+        now = time.monotonic()
+        self._latest = self._recovery.observe(
+            message.axes, message.buttons, self._mapping(), now,
+            float(self.get_parameter("joy_timeout_sec").value),
+            not message.header.frame_id.endswith(":down"),
+        )
+        self._last_joy_time = now
 
     def _tick(self) -> None:
         age = time.monotonic() - self._last_joy_time
         timeout = float(self.get_parameter("joy_timeout_sec").value)
         if self._last_joy_time <= 0.0 or age > timeout:
+            self._recovery.require_neutral()
             intent = ManualIntent(0.0, 0.0, False, "joy_timeout")
         else:
             intent = self._latest

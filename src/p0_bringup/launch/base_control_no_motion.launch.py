@@ -13,6 +13,13 @@ def generate_launch_description():
     return LaunchDescription(
         [
             Node(
+                package="p0_system_manager",
+                executable="system_manager",
+                name="p0_system_manager",
+                output="screen",
+                parameters=[config],
+            ),
+            Node(
                 package="p0_manual_control",
                 executable="linux_joy",
                 name="p0_linux_joy",
